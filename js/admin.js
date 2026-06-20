@@ -4,9 +4,10 @@
 
 // ── State ──────────────────────────────────────────────────
 let allOrders    = [];
+let allReviews   = [];
 let activeFilter = 'all';
 let pendingDeleteId  = null;
-let pendingDeleteType = null; // 'order' | 'cookie'
+let pendingDeleteType = null; // 'order' | 'cookie' | 'review'
 
 // ── Auth ───────────────────────────────────────────────────
 async function checkAuth() {
@@ -65,7 +66,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 
 // ── Dashboard Init ─────────────────────────────────────────
 async function initDashboard() {
-  await Promise.all([loadOrders(), loadCookiesAdmin()]);
+  await Promise.all([loadOrders(), loadCookiesAdmin(), loadReviewsAdmin()]);
   subscribeToOrders();
 }
 
@@ -331,11 +332,59 @@ document.getElementById('new-cookie-image').addEventListener('change', e => {
   }
 });
 
+// ── Reviews Admin ──────────────────────────────────────────
+async function loadReviewsAdmin() {
+  const { data, error } = await supabaseClient
+    .from('reviews')
+    .select('*, cookies(name)')
+    .order('created_at', { ascending: false });
+
+  if (error) { showToast('Could not load reviews.', 'error'); return; }
+
+  allReviews = data || [];
+  document.getElementById('reviews-count-badge').textContent = allReviews.length;
+  renderReviewsAdmin();
+}
+
+function renderReviewsAdmin() {
+  const tbody = document.getElementById('reviews-tbody');
+
+  if (allReviews.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">No reviews yet.</td></tr>`;
+    return;
+  }
+
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+  tbody.innerHTML = allReviews.map(r => `
+    <tr data-review-id="${r.id}">
+      <td><div class="order-name">${esc(r.reviewer_name)}</div></td>
+      <td>${esc(r.cookies?.name || '—')}</td>
+      <td style="color:#d4a843;letter-spacing:1px;font-size:.95rem">${stars(r.rating)}</td>
+      <td style="max-width:320px;color:var(--text-500);font-size:.88rem;font-style:italic">
+        ${r.comment ? esc(r.comment) : '<span style="color:var(--text-200)">—</span>'}
+      </td>
+      <td><div class="order-time">${fmtDateTime(r.created_at)}</div></td>
+      <td>
+        <button class="delete-order-btn delete-review-btn" data-review-id="${r.id}" title="Delete review">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('.delete-review-btn').forEach(btn =>
+    btn.addEventListener('click', () =>
+      confirmDelete('review', btn.dataset.reviewId, 'Delete this review? This cannot be undone.')
+    )
+  );
+}
+
 // ── Delete confirmation modal ──────────────────────────────
 function confirmDelete(type, id, message) {
   pendingDeleteType = type;
   pendingDeleteId   = id;
-  document.getElementById('confirm-msg').textContent = message || 'This cannot be undone.';
+  const titles = { order: 'Delete Order?', cookie: 'Delete Cookie?', review: 'Delete Review?' };
+  document.getElementById('confirm-title').textContent = titles[type] || 'Delete?';
+  document.getElementById('confirm-msg').textContent   = message || 'This cannot be undone.';
   document.getElementById('confirm-modal').classList.remove('hidden');
 }
 
@@ -368,6 +417,15 @@ document.getElementById('confirm-ok').addEventListener('click', async () => {
     if (error) { showToast('Could not delete cookie.', 'error'); return; }
     showToast('Cookie deleted.', 'info');
     await loadCookiesAdmin();
+  }
+
+  if (pendingDeleteType === 'review') {
+    const { error } = await supabaseClient.from('reviews').delete().eq('id', pendingDeleteId);
+    if (error) { showToast('Could not delete review.', 'error'); return; }
+    allReviews = allReviews.filter(r => r.id !== pendingDeleteId);
+    document.getElementById('reviews-count-badge').textContent = allReviews.length;
+    renderReviewsAdmin();
+    showToast('Review deleted.', 'info');
   }
 
   pendingDeleteId = null; pendingDeleteType = null;

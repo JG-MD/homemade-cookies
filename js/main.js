@@ -7,11 +7,15 @@ let selectedCookieId   = null;
 let selectedCookieName = '';
 let selectedSize       = 'standard';
 let selectedRating     = 0;
+let availableCookies   = [];
 
 const RATING_LABELS = ['', 'Terrible 😬', 'Not great 😕', 'Pretty good 🙂', 'Loved it 😍', 'Life-changing 🤩'];
 
 // ── Init ───────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', loadCookies);
+document.addEventListener('DOMContentLoaded', () => {
+  loadCookies();
+  loadAllReviews();
+});
 
 // ── Load & Render Cookies ──────────────────────────────────
 function showGridError(msg) {
@@ -81,6 +85,7 @@ async function loadCookies() {
   cookieIds.forEach(id => { byId[id] = []; });
   (reviews || []).forEach(r => { if (byId[r.cookie_id]) byId[r.cookie_id].push(r); });
 
+  availableCookies = cookies;
   grid.innerHTML = cookies.map(c => renderCookieCard(c, byId[c.id])).join('');
   attachCardListeners();
 }
@@ -220,13 +225,70 @@ document.getElementById('order-form').addEventListener('submit', async e => {
   document.getElementById('order-success-view').classList.remove('hidden');
 });
 
+// ── All Reviews Section ────────────────────────────────────
+async function loadAllReviews() {
+  const grid = document.getElementById('reviews-grid');
+  grid.innerHTML = '<div class="loading-spinner"></div>';
+
+  const { data: reviews, error } = await supabaseClient
+    .from('reviews')
+    .select('*, cookies(name)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    grid.innerHTML = '<p class="reviews-empty">Could not load reviews.</p>';
+    return;
+  }
+
+  if (!reviews || reviews.length === 0) {
+    grid.innerHTML = '<p class="reviews-empty">No reviews yet — be the first! 🍪</p>';
+    return;
+  }
+
+  grid.innerHTML = reviews.map(renderReviewCard).join('');
+}
+
+function renderReviewCard(r) {
+  const cookieName = r.cookies?.name || '';
+  const stars      = starsHtml(r.rating);
+  return `
+    <div class="review-card">
+      <div class="review-card-stars">${stars}</div>
+      ${r.comment ? `<p class="review-card-comment">${esc(r.comment)}</p>` : ''}
+      <div class="review-card-meta">
+        <span class="review-card-name">${esc(r.reviewer_name)}</span>
+        <span class="review-card-sep">·</span>
+        <span class="review-card-cookie">${esc(cookieName)}</span>
+        <span class="review-card-date">${fmtDate(r.created_at)}</span>
+      </div>
+    </div>`;
+}
+
+document.getElementById('write-review-btn').addEventListener('click', () => {
+  openReviewModal(null, null);
+});
+
 // ── Review Modal ───────────────────────────────────────────
 function openReviewModal(cookieId, cookieName) {
-  selectedCookieId   = cookieId;
-  selectedCookieName = cookieName;
+  selectedCookieId   = cookieId || null;
+  selectedCookieName = cookieName || '';
   selectedRating     = 0;
 
-  document.getElementById('review-cookie-name').textContent = cookieName;
+  const forRow      = document.getElementById('review-for-row');
+  const cookieGroup = document.getElementById('review-cookie-group');
+  const select      = document.getElementById('review-cookie-select');
+
+  if (cookieId) {
+    document.getElementById('review-cookie-name').textContent = cookieName;
+    forRow.style.display      = '';
+    cookieGroup.style.display = 'none';
+  } else {
+    forRow.style.display      = 'none';
+    cookieGroup.style.display = '';
+    select.innerHTML = '<option value="">Select a cookie…</option>' +
+      availableCookies.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  }
+
   document.getElementById('review-form').reset();
   updateStars();
   document.getElementById('review-modal').classList.remove('hidden');
@@ -276,6 +338,19 @@ document.getElementById('review-form').addEventListener('submit', async e => {
   if (!name)          { showToast('Please enter your name 🙂', 'error'); return; }
   if (!selectedRating){ showToast('Please select a rating ⭐', 'error'); return; }
 
+  const nameErr    = validateReviewText(name);
+  const commentErr = validateReviewText(comment);
+  if (nameErr)    { showToast(nameErr, 'error', 5000); return; }
+  if (commentErr) { showToast(commentErr, 'error', 5000); return; }
+
+  // Resolve cookie from select when opened from the reviews section
+  if (!selectedCookieId) {
+    const select = document.getElementById('review-cookie-select');
+    selectedCookieId   = select.value;
+    selectedCookieName = select.options[select.selectedIndex]?.text || '';
+    if (!selectedCookieId) { showToast('Please select a cookie 🍪', 'error'); return; }
+  }
+
   btn.disabled    = true;
   btn.textContent = 'Submitting…';
 
@@ -296,7 +371,7 @@ document.getElementById('review-form').addEventListener('submit', async e => {
 
   closeReviewModal();
   showToast('Review submitted! Thank you 💚', 'success');
-  await loadCookies();
+  await Promise.all([loadCookies(), loadAllReviews()]);
 });
 
 // ── Helpers ────────────────────────────────────────────────

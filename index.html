@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cookie Corner</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
   <link rel="stylesheet" href="./css/style.css">
   <style>
   /* ═══════════════════════════════════════
@@ -33,12 +34,8 @@
     transition: color .3s;
   }
   .site-header.scrolled .nav-logo { color: var(--text-900); }
-  .nav-logo-mark {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--green-mid);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .nav-logo-mark svg { width: 16px; height: 16px; fill: #fff; }
+  .nav-logo img { width: 28px; height: 28px; filter: brightness(0) invert(1); transition: filter .35s; flex-shrink: 0; }
+  .site-header.scrolled .nav-logo img { filter: brightness(0); }
   .nav-links { display: flex; align-items: center; gap: 4px; }
   .nav-link {
     font-family: 'Nunito', sans-serif; font-weight: 700; font-size: .87rem;
@@ -304,6 +301,14 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 0;
   }
+  .step-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; color: var(--green-mid); }
+  .step-icon {
+    display: inline-block; width: 48px; height: 48px; flex-shrink: 0;
+    background-color: currentColor;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+  }
   .step { padding-right: 56px; }
   .step:not(:first-child) { padding-left: 56px; border-left: 2px solid var(--border); padding-right: 0; }
   .step:last-child { padding-right: 0; }
@@ -314,7 +319,7 @@
     font-size: clamp(2.8rem, 4.5vw, 4.2rem);
     color: var(--green-mid);
     line-height: 1;
-    margin-bottom: 24px;
+    margin-bottom: 0;
   }
   .step p {
     color: var(--text-600);
@@ -340,6 +345,62 @@
   .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; }
   .empty-state p { color:var(--text-400); font-size:1rem; }
 
+  /* ─── Reviews section ──────────────── */
+  .reviews-section { padding: 110px 0 130px; background: #fff; }
+  .reviews-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 64px; flex-wrap: wrap; gap: 20px;
+  }
+  .reviews-title {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: clamp(2.4rem, 5vw, 3.8rem); color: var(--text-900);
+    line-height: 1.1; margin: 0;
+  }
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .review-card {
+    background: var(--cream); border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 28px 28px 22px;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: box-shadow .2s, transform .2s;
+  }
+  .review-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+  .review-card-stars { color: var(--gold); font-size: 1.05rem; letter-spacing: 2px; }
+  .review-card-comment {
+    color: var(--text-600); font-size: .93rem; line-height: 1.75;
+    font-style: italic; flex: 1;
+  }
+  .review-card-meta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px 10px;
+    font-family: 'Nunito', sans-serif; font-size: .78rem; font-weight: 700;
+    letter-spacing: .03em; padding-top: 14px; border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .review-card-name   { color: var(--text-900); }
+  .review-card-sep    { color: var(--text-400); }
+  .review-card-cookie { color: var(--green-mid); }
+  .review-card-date   { color: var(--text-400); margin-left: auto; }
+  .reviews-empty {
+    grid-column: 1/-1; text-align: center; padding: 60px 20px;
+    color: var(--text-400); font-size: .95rem;
+  }
+  select {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-md); font-family: 'Nunito', sans-serif;
+    font-size: .95rem; color: var(--text-900); background: #fff;
+    appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  select:focus {
+    outline: none; border-color: var(--green-bright);
+    box-shadow: 0 0 0 3px rgba(106,181,78,.15);
+  }
+
   /* ─── Footer ────────────────────────── */
   .site-footer {
     background:var(--dark); padding:52px 0 36px; position:relative;
@@ -361,13 +422,13 @@
     width:30px; height:30px; border-radius:50%; background:var(--green-mid);
     display:flex; align-items:center; justify-content:center;
   }
-  .footer-logo-mark svg { width:14px; height:14px; fill:#fff; }
+  .footer-logo img { width:24px; height:24px; filter: brightness(0) invert(1); flex-shrink:0; }
   .footer-copy { color:var(--text-muted); font-size:.85rem; }
-  .footer-admin {
-    color:rgba(240,237,230,.2); font-size:.78rem; font-weight:700;
+  .footer-link {
+    color:rgba(240,237,230,.35); font-size:.78rem; font-weight:600;
     transition:color .2s;
   }
-  .footer-admin:hover { color:rgba(240,237,230,.5); }
+  .footer-link:hover { color:rgba(240,237,230,.65); }
   </style>
 </head>
 <body>
@@ -376,14 +437,13 @@
   <header class="site-header" id="site-header">
     <nav class="nav-inner">
       <a href="/" class="nav-logo">
-        <div class="nav-logo-mark">
-          <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-5 8"/></svg>
-        </div>
+        <img src="./assets/icons/cookie.svg" alt="">
         Cookie Corner
       </a>
       <div class="nav-links">
         <a href="#cookies" class="nav-link">Cookies</a>
         <a href="#how"     class="nav-link">How it works</a>
+        <a href="#reviews" class="nav-link">Reviews</a>
         <a href="#cookies" class="nav-cta">Order now</a>
         <a href="./admin.html" class="nav-admin-btn" title="Admin Login">
           <svg viewBox="-42 0 512 512.001" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
@@ -471,15 +531,24 @@
       <h2 class="how-title">Baked with love, ordered with ease.</h2>
       <div class="steps-row">
         <div class="step">
-          <h3 class="step-name">Browse</h3>
+          <div class="step-heading">
+            <span class="step-icon" style="-webkit-mask-image:url('./assets/icons/browse.svg');mask-image:url('./assets/icons/browse.svg')"></span>
+            <h3 class="step-name">Browse</h3>
+          </div>
           <p>See what's fresh this round and check what your friends thought about the last batch.</p>
         </div>
         <div class="step">
-          <h3 class="step-name">Order</h3>
+          <div class="step-heading">
+            <span class="step-icon" style="-webkit-mask-image:url('./assets/icons/order.svg');mask-image:url('./assets/icons/order.svg')"></span>
+            <h3 class="step-name">Order</h3>
+          </div>
           <p>Name, size, amount. That's literally it. No account, no payment, done in seconds.</p>
         </div>
         <div class="step">
-          <h3 class="step-name">Enjoy</h3>
+          <div class="step-heading">
+            <span class="step-icon" style="-webkit-mask-image:url('./assets/icons/enjoy.svg');mask-image:url('./assets/icons/enjoy.svg');width:64px;height:64px"></span>
+            <h3 class="step-name">Enjoy</h3>
+          </div>
           <p>We'll hit you up when they're out of the oven. Come grab them warm.</p>
         </div>
       </div>
@@ -499,17 +568,28 @@
     </div>
   </section>
 
+  <!-- REVIEWS -->
+  <section class="reviews-section" id="reviews">
+    <div class="container">
+      <div class="reviews-header">
+        <h2 class="reviews-title">The crumbs don't lie.</h2>
+        <button class="btn btn-secondary" id="write-review-btn">Write a Review</button>
+      </div>
+      <div class="reviews-grid" id="reviews-grid">
+        <div class="loading-spinner"></div>
+      </div>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="container footer-inner">
       <div class="footer-logo">
-        <div class="footer-logo-mark">
-          <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-5 8"/></svg>
-        </div>
+        <img src="./assets/icons/cookie.svg" alt="">
         Cookie Corner
       </div>
       <span class="footer-copy">Made with love and a whole lot of butter</span>
-      <a href="./admin.html" class="footer-admin">Admin</a>
+      <a href="./privacy.html" class="footer-link">Privacy Policy</a>
     </div>
   </footer>
 
@@ -565,8 +645,14 @@
     <div class="modal">
       <button class="modal-close" id="close-review-modal" aria-label="Close">&#x2715;</button>
       <h2 id="review-modal-title">Leave a Review</h2>
-      <p style="margin-bottom:4px;font-size:.9rem">For: <strong id="review-cookie-name"></strong></p>
+      <p id="review-for-row" style="margin-bottom:4px;font-size:.9rem">For: <strong id="review-cookie-name"></strong></p>
       <form id="review-form" novalidate style="margin-top:20px">
+          <div class="form-group" id="review-cookie-group" style="display:none">
+            <label for="review-cookie-select">Which cookie?</label>
+            <select id="review-cookie-select">
+              <option value="">Select a cookie…</option>
+            </select>
+          </div>
         <div class="form-group">
           <label for="reviewer-name">Your Name</label>
           <input type="text" id="reviewer-name" placeholder="Enter your name" autocomplete="name" required>
@@ -598,6 +684,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
+  <script src="./js/moderation.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>
