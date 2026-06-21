@@ -80,6 +80,15 @@ document.querySelectorAll('.tab-btn').forEach(btn =>
   })
 );
 
+// Close any open status dropdown when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.status-dd.open').forEach(dd => dd.classList.remove('open'));
+});
+
+function statusLabel(s) {
+  return { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready', done: 'Done' }[s] || s;
+}
+
 // ── Orders ─────────────────────────────────────────────────
 async function loadOrders() {
   const { data, error } = await supabaseClient
@@ -109,32 +118,62 @@ function renderOrders() {
 
   tbody.innerHTML = visible.map(o => `
     <tr data-order-id="${o.id}">
-      <td>
+      <td data-label="Customer">
         <div class="order-name">${esc(o.customer_name)}</div>
         ${o.note ? `<div class="order-note">"${esc(o.note)}"</div>` : ''}
       </td>
-      <td>${esc(o.cookie_name)}</td>
-      <td><span class="size-pill">${o.size === 'small' ? 'Mini 🫐' : 'Standard 🍪'}</span></td>
-      <td><strong>${o.amount}</strong></td>
-      <td><div class="order-time">${fmtDateTime(o.created_at)}</div></td>
-      <td>
-        <select class="status-select" data-order-id="${o.id}">
-          <option value="pending"   ${o.status === 'pending'   ? 'selected' : ''}>⏳ Pending</option>
-          <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>✅ Confirmed</option>
-          <option value="ready"     ${o.status === 'ready'     ? 'selected' : ''}>🎉 Ready</option>
-          <option value="done"      ${o.status === 'done'      ? 'selected' : ''}>✓ Done</option>
-        </select>
+      <td data-label="Cookie">${esc(o.cookie_name)}</td>
+      <td data-label="Size"><span class="size-pill">${o.size === 'small' ? 'Mini 🫐' : 'Standard 🍪'}</span></td>
+      <td data-label="Qty"><strong>${o.amount}</strong></td>
+      <td data-label="Time"><div class="order-time">${fmtDateTime(o.created_at)}</div></td>
+      <td data-label="Status">
+        <div class="status-dd" data-order-id="${o.id}" data-status="${o.status}">
+          <button class="status-dd-trigger" type="button">
+            <span class="status-icon status-icon--${o.status}"></span>
+            <span class="status-dd-label">${statusLabel(o.status)}</span>
+            <span class="status-dd-caret">▾</span>
+          </button>
+          <div class="status-dd-menu">
+            ${['pending','confirmed','ready','done'].map(s => `
+              <button class="status-dd-item${s === o.status ? ' current' : ''}" data-value="${s}" type="button">
+                <span class="status-icon status-icon--${s}"></span>
+                <span>${statusLabel(s)}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
       </td>
-      <td>
-        <button class="delete-order-btn" data-order-id="${o.id}" title="Delete order">🗑</button>
+      <td data-label="">
+        <button class="delete-order-btn" data-order-id="${o.id}" title="Delete order"><span class="delete-icon"></span></button>
       </td>
     </tr>
   `).join('');
 
-  // Status change
-  tbody.querySelectorAll('.status-select').forEach(sel =>
-    sel.addEventListener('change', () => updateOrderStatus(sel.dataset.orderId, sel.value))
-  );
+  // Status dropdowns
+  tbody.querySelectorAll('.status-dd').forEach(dd => {
+    dd.querySelector('.status-dd-trigger').addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.status-dd.open').forEach(o => { if (o !== dd) o.classList.remove('open'); });
+      if (!dd.classList.contains('open')) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const menu = dd.querySelector('.status-dd-menu');
+        menu.style.top  = (rect.bottom + 6) + 'px';
+        menu.style.left = rect.left + 'px';
+      }
+      dd.classList.toggle('open');
+    });
+    dd.querySelectorAll('.status-dd-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const newStatus = item.dataset.value;
+        dd.querySelector('.status-icon').className = `status-icon status-icon--${newStatus}`;
+        dd.querySelector('.status-dd-label').textContent = statusLabel(newStatus);
+        dd.querySelectorAll('.status-dd-item').forEach(i => i.classList.toggle('current', i === item));
+        dd.dataset.status = newStatus;
+        dd.classList.remove('open');
+        updateOrderStatus(dd.dataset.orderId, newStatus);
+      });
+    });
+  });
 
   // Delete buttons
   tbody.querySelectorAll('.delete-order-btn').forEach(btn =>
@@ -243,7 +282,7 @@ async function loadCookiesAdmin() {
           data-available="${c.available}"
           title="${c.available ? 'Click to hide' : 'Click to show'}">
         </button>
-        <button class="delete-order-btn" data-cookie-id="${c.id}" data-type="cookie" title="Delete cookie">🗑</button>
+        <button class="delete-order-btn" data-cookie-id="${c.id}" data-type="cookie" title="Delete cookie"><span class="delete-icon"></span></button>
       </div>
     </div>
   `).join('');
@@ -358,15 +397,15 @@ function renderReviewsAdmin() {
 
   tbody.innerHTML = allReviews.map(r => `
     <tr data-review-id="${r.id}">
-      <td><div class="order-name">${esc(r.reviewer_name)}</div></td>
-      <td>${esc(r.cookies?.name || '—')}</td>
-      <td style="color:#d4a843;letter-spacing:1px;font-size:.95rem">${stars(r.rating)}</td>
-      <td style="max-width:320px;color:var(--text-500);font-size:.88rem;font-style:italic">
+      <td data-label="Reviewer"><div class="order-name">${esc(r.reviewer_name)}</div></td>
+      <td data-label="Cookie">${esc(r.cookies?.name || '—')}</td>
+      <td data-label="Rating" style="color:#d4a843;letter-spacing:1px;font-size:.95rem">${stars(r.rating)}</td>
+      <td data-label="Comment" style="max-width:320px;color:var(--text-500);font-size:.88rem;font-style:italic">
         ${r.comment ? esc(r.comment) : '<span style="color:var(--text-200)">—</span>'}
       </td>
-      <td><div class="order-time">${fmtDateTime(r.created_at)}</div></td>
-      <td>
-        <button class="delete-order-btn delete-review-btn" data-review-id="${r.id}" title="Delete review">🗑</button>
+      <td data-label="Date"><div class="order-time">${fmtDateTime(r.created_at)}</div></td>
+      <td data-label="">
+        <button class="delete-order-btn delete-review-btn" data-review-id="${r.id}" title="Delete review"><span class="delete-icon"></span></button>
       </td>
     </tr>
   `).join('');
