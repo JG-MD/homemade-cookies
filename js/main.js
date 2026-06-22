@@ -10,6 +10,7 @@ let selectedRating     = 0;
 let availableCookies   = [];
 
 const RATING_LABELS = ['', 'Terrible 😬', 'Not great 😕', 'Pretty good 🙂', 'Loved it 😍', 'Life-changing 🤩'];
+const STATUS_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready for pickup!', done: 'Picked up' };
 
 // ── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -117,9 +118,12 @@ function renderCookieCard(cookie, reviews) {
         ${ratingHtml}
       </div>
       <div class="cookie-card-actions">
-        <button class="btn btn-primary btn-full order-btn"
+        <button class="btn btn-primary order-btn"
           data-cookie-id="${cookie.id}"
           data-cookie-name="${esc(cookie.name)}">Order</button>
+        <button class="btn btn-secondary review-card-btn"
+          data-cookie-id="${cookie.id}"
+          data-cookie-name="${esc(cookie.name)}">Review</button>
       </div>
     </div>`;
 }
@@ -127,6 +131,9 @@ function renderCookieCard(cookie, reviews) {
 function attachCardListeners() {
   document.querySelectorAll('.order-btn').forEach(btn =>
     btn.addEventListener('click', () => openOrderModal(btn.dataset.cookieId, btn.dataset.cookieName))
+  );
+  document.querySelectorAll('.review-card-btn').forEach(btn =>
+    btn.addEventListener('click', () => openReviewModal(btn.dataset.cookieId, btn.dataset.cookieName))
   );
 }
 
@@ -158,6 +165,17 @@ document.getElementById('order-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('order-modal')) closeOrderModal();
 });
 document.getElementById('order-success-close').addEventListener('click', closeOrderModal);
+
+document.getElementById('copy-order-code').addEventListener('click', () => {
+  const code = document.getElementById('order-code-display').textContent;
+  if (!code) return;
+  const btn = document.getElementById('copy-order-code');
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => showToast('Your code: ' + code, 'info', 6000));
+});
 
 // Size toggle
 document.querySelectorAll('.size-btn').forEach(btn =>
@@ -192,6 +210,8 @@ document.getElementById('order-form').addEventListener('submit', async e => {
   btn.disabled    = true;
   btn.textContent = 'Placing order…';
 
+  const orderCode = generateOrderCode();
+
   const { error } = await supabaseClient.from('orders').insert({
     customer_name: name,
     cookie_id:     selectedCookieId,
@@ -200,6 +220,7 @@ document.getElementById('order-form').addEventListener('submit', async e => {
     amount:        amount,
     note:          note || null,
     status:        'pending',
+    lookup_code:   orderCode,
   });
 
   btn.disabled    = false;
@@ -211,6 +232,7 @@ document.getElementById('order-form').addEventListener('submit', async e => {
   }
 
   // Show success view
+  document.getElementById('order-code-display').textContent = orderCode;
   document.getElementById('order-form-view').classList.add('hidden');
   const summary = document.getElementById('order-summary-details');
   summary.innerHTML = [
@@ -230,10 +252,22 @@ async function loadAllReviews() {
   const grid = document.getElementById('reviews-grid');
   grid.innerHTML = '<div class="loading-spinner"></div>';
 
-  const { data: reviews, error } = await supabaseClient
-    .from('reviews')
-    .select('*, cookies(name)')
-    .order('created_at', { ascending: false });
+  let reviews, error;
+  try {
+    const timeout = new Promise((_, rej) =>
+      setTimeout(() => rej(new Error('Request timed out after 10 s')), 10000)
+    );
+    const result = await Promise.race([
+      supabaseClient.from('reviews').select('*, cookies(name)').order('created_at', { ascending: false }),
+      timeout,
+    ]);
+    reviews = result.data;
+    error   = result.error;
+  } catch (e) {
+    console.error('loadAllReviews error:', e);
+    grid.innerHTML = '<p class="reviews-empty">Could not load reviews. Check your connection and try again.</p>';
+    return;
+  }
 
   if (error) {
     grid.innerHTML = '<p class="reviews-empty">Could not load reviews.</p>';
@@ -374,7 +408,74 @@ document.getElementById('review-form').addEventListener('submit', async e => {
   await Promise.all([loadCookies(), loadAllReviews()]);
 });
 
+// ── Status Modal ───────────────────────────────────────────
+function openStatusModal() {
+  document.getElementById('status-code').value = '';
+  document.getElementById('status-results').innerHTML = '';
+  document.getElementById('status-results').classList.add('hidden');
+  document.getElementById('status-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStatusModal() {
+  document.getElementById('status-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('close-status-modal').addEventListener('click', closeStatusModal);
+document.getElementById('status-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('status-modal')) closeStatusModal();
+});
+
+document.getElementById('track-order-btn').addEventListener('click', e => {
+  e.preventDefault();
+  openStatusModal();
+});
+document.getElementById('track-order-btn-mobile').addEventListener('click', e => {
+  e.preventDefault();
+  openStatusModal();
+});
+
+document.getElementById('status-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const code = document.getElementById('status-code').value.trim().toUpperCase();
+  const btn  = document.getElementById('status-submit-btn');
+  if (!code) { showToast('Enter your order code 🙂', 'error'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = 'Looking up…';
+
+  const { data: orders, error } = await supabaseClient
+    .rpc('get_order_by_code', { p_code: code });
+
+  btn.disabled    = false;
+  btn.textContent = 'Check Status';
+
+  const results = document.getElementById('status-results');
+  results.classList.remove('hidden');
+
+  if (error || !orders || orders.length === 0) {
+    results.innerHTML = `<p class="status-empty">No order found for code <strong>${esc(code)}</strong>. Double-check the code from your confirmation.</p>`;
+    return;
+  }
+
+  results.innerHTML = orders.map(o => `
+    <div class="status-order-card">
+      <div class="status-order-left">
+        <span class="status-order-name">${esc(o.cookie_name)}</span>
+        <span class="status-order-detail">${o.amount} × ${o.size === 'small' ? 'Mini' : 'Standard'}</span>
+      </div>
+      <span class="status-badge status-${o.status}">${STATUS_LABELS[o.status] || o.status}</span>
+    </div>
+  `).join('');
+});
+
 // ── Helpers ────────────────────────────────────────────────
+function generateOrderCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
 function starsHtml(avg) {
   const filled = Math.round(avg);
   return '★'.repeat(filled) + '☆'.repeat(5 - filled);

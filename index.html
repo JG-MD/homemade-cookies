@@ -542,6 +542,35 @@
   }
   .footer-link:hover { color:rgba(240,237,230,.65); }
 
+  /* ─── Status modal ────────────────── */
+  .status-results { display:flex; flex-direction:column; gap:10px; margin-top:24px; padding-top:24px; border-top:1.5px solid var(--border); }
+  .status-order-card {
+    background:var(--cream); border:1.5px solid var(--border);
+    border-radius:var(--r-md); padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .status-order-left { display:flex; flex-direction:column; gap:3px; }
+  .status-order-name { font-weight:800; color:var(--text-900); font-size:.92rem; }
+  .status-order-detail { font-size:.8rem; color:var(--text-400); }
+  .status-empty { text-align:center; padding:20px 0 4px; color:var(--text-400); font-size:.9rem; }
+  .order-code-box {
+    background: var(--dark);
+    border-radius: var(--r-lg); padding: 20px; margin: 16px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .order-code-label { font-size:.7rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.45); }
+  .order-code-row   { display:flex; align-items:center; gap:12px; }
+  .order-code-value { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:700; color:#fff; letter-spacing:.2em; }
+  .order-code-copy  {
+    background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2);
+    color:rgba(255,255,255,.7); border-radius:var(--r-sm);
+    font-family:'Nunito',sans-serif; font-size:.78rem; font-weight:800;
+    padding:6px 12px; transition:all .2s var(--ease); letter-spacing:.04em;
+  }
+  .order-code-copy:hover { background:rgba(255,255,255,.22); color:#fff; }
+  .order-code-copy.copied { background:var(--green-bright); border-color:var(--green-bright); color:#fff; }
+  .order-code-hint  { font-size:.78rem; color:rgba(255,255,255,.35); }
+
   /* ─── Order modal ─────────────────── */
   #order-modal .modal { padding: 0; overflow: hidden; }
   #order-modal .modal-body {
@@ -602,6 +631,7 @@
         <a href="#cookies" class="nav-link">Cookies</a>
         <a href="#how"     class="nav-link">How it works</a>
         <a href="#reviews" class="nav-link">Reviews</a>
+        <a href="#" class="nav-link" id="track-order-btn">Track Order</a>
         <a href="#cookies" class="nav-cta">Order now</a>
         <a href="./admin.html" class="nav-admin-btn" title="Admin Login">
           <svg viewBox="-42 0 512 512.001" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
@@ -621,6 +651,7 @@
     <a href="#cookies" class="mobile-nav-link">Cookies</a>
     <a href="#how"     class="mobile-nav-link">How it works</a>
     <a href="#reviews" class="mobile-nav-link">Reviews</a>
+    <a href="#" class="mobile-nav-link" id="track-order-btn-mobile">Track Order</a>
     <a href="#cookies" class="mobile-nav-cta">Order now</a>
     <div class="mobile-overlay-footer">
       <a href="./privacy.html">Privacy Policy</a>
@@ -815,6 +846,14 @@
           <div style="font-size:3rem;margin-bottom:14px;color:var(--green-bright)">&#10003;</div>
           <h2>Order placed!</h2>
           <p style="margin-bottom:4px">Your cookies are on the list.</p>
+          <div class="order-code-box">
+            <span class="order-code-label">Your order code</span>
+            <div class="order-code-row">
+              <span class="order-code-value" id="order-code-display"></span>
+              <button type="button" class="order-code-copy" id="copy-order-code">Copy</button>
+            </div>
+            <span class="order-code-hint">Save this to track your order status</span>
+          </div>
           <div class="order-summary" id="order-summary-details"></div>
           <button class="btn btn-primary btn-full btn-large" id="order-success-close">Sweet!</button>
         </div>
@@ -855,6 +894,23 @@
         </div>
         <button type="submit" class="btn btn-primary btn-full btn-large" id="review-submit-btn">Submit Review</button>
       </form>
+    </div>
+  </div>
+
+  <!-- STATUS MODAL -->
+  <div class="modal-overlay hidden" id="status-modal" role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
+    <div class="modal">
+      <button class="modal-close" id="close-status-modal" aria-label="Close">&#x2715;</button>
+      <h2 id="status-modal-title" style="margin-bottom:8px">Track Your Order</h2>
+      <p style="color:var(--text-400);font-size:.9rem;margin-bottom:24px">Enter the order code from your confirmation.</p>
+      <form id="status-form" novalidate style="margin-bottom:0">
+        <div class="form-group">
+          <label for="status-code">Order Code</label>
+          <input type="text" id="status-code" placeholder="e.g. AB3X7K" autocomplete="off" style="letter-spacing:.1em;text-transform:uppercase">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="status-submit-btn">Check Status</button>
+      </form>
+      <div id="status-results" class="status-results hidden"></div>
     </div>
   </div>
 
