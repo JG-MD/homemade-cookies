@@ -17,20 +17,38 @@
     .login-card {
       background: var(--card-bg);
       border-radius: var(--r-xl);
-      padding: 48px 40px;
+      padding: 0;
       width: 100%; max-width: 400px;
       box-shadow: var(--shadow-lg);
       border: 1.5px solid var(--border);
+      overflow: hidden;
     }
+    .login-card-header {
+      background: var(--cream);
+      padding: 36px 40px 28px;
+      border-bottom: 1.5px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-card-palm {
+      position: absolute;
+      top: 0; right: 0;
+      width: 55%;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+    .login-card-header > *:not(.login-card-palm) { position: relative; z-index: 1; }
     .login-logo {
       font-family: 'Playfair Display', serif;
-      font-size: 1.4rem; font-weight: 700; font-style: italic;
-      color: var(--green-dark); margin-bottom: 12px;
-      display: flex; align-items: center; gap: 8px;
+      font-size: .95rem; font-weight: 700; font-style: italic;
+      color: var(--green-dark); margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
     }
-    .login-logo img { width: 28px; height: 28px; filter: brightness(0); flex-shrink: 0; }
-    .login-card h2 { margin-bottom: 4px; font-size: 1.6rem; }
-    .login-card > p { color: var(--text-400); font-size: .9rem; margin-bottom: 28px; }
+    .login-logo img { width: 18px; height: 18px; filter: brightness(0); flex-shrink: 0; }
+    .login-card-header h2 { font-size: 1.6rem; color: var(--text-900); }
+    .login-card-body { padding: 28px 40px 36px; }
+    .login-subtitle { color: var(--text-400); font-size: .9rem; margin-bottom: 24px; }
     .login-form { display: flex; flex-direction: column; gap: 18px; }
     .login-error {
       background: #fff1f1; border: 1.5px solid #fca5a5;
@@ -321,7 +339,8 @@
     /* ── Mobile ───────────────────────────────────────────── */
     @media (max-width: 680px) {
       /* Login */
-      .login-card { padding: 32px 22px; }
+      .login-card-header { padding: 28px 22px 22px; }
+      .login-card-body   { padding: 22px 22px 28px; }
 
       /* Header */
       .admin-header { padding: 0 16px; }
@@ -381,31 +400,32 @@
   ═════════════════════════════════════════════ -->
   <div class="login-screen" id="login-screen">
     <div class="login-card">
-      <div class="login-logo">
-        <img src="./assets/icons/cookie.svg" alt="">
-        Cookie Corner
+      <div class="login-card-header">
+        <img src="./assets/images/palm-leaves.png" class="login-card-palm" alt="" aria-hidden="true">
+        <div class="login-logo">
+          <img src="./assets/icons/cookie.svg" alt="">
+          Cookie Corner
+        </div>
+        <h2>Admin Login</h2>
       </div>
-      <h2>Admin Login</h2>
-      <p>Enter your credentials to access the dashboard.</p>
-
-      <form class="login-form" id="login-form" novalidate>
-        <div id="login-error" class="login-error"></div>
-
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
-      </form>
-
-      <p style="text-align:center;margin-top:20px;font-size:.82rem">
-        <a href="./index.html" style="color:var(--text-300)">← Back to Cookie Corner</a>
-      </p>
+      <div class="login-card-body">
+        <p class="login-subtitle">Enter your credentials to access the dashboard.</p>
+        <form class="login-form" id="login-form" novalidate>
+          <div id="login-error" class="login-error"></div>
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
+        </form>
+        <p style="text-align:center;margin-top:20px;font-size:.82rem">
+          <a href="./index.html" style="color:var(--text-300)">← Back to Cookie Corner</a>
+        </p>
+      </div>
     </div>
   </div>
 

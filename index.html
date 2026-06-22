@@ -414,7 +414,26 @@
   }
 
   /* ─── Cookies section ───────────────── */
-  .cookies-section { padding:110px 0 130px; background:var(--cream); }
+  .cookies-section { padding:110px 0 130px; background:var(--cream); position:relative; overflow:hidden; }
+  .cookies-palm {
+    position: absolute;
+    top: 0; right: 0;
+    width: clamp(220px, 28vw, 400px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 1;
+    z-index: 0;
+  }
+  .cookies-palm-2 {
+    position: absolute;
+    bottom: -75px; left: -45px;
+    width: clamp(220px, 28vw, 400px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 1;
+    z-index: 0;
+  }
+  .cookies-section .container { position: relative; z-index: 1; }
   .cookies-title {
     font-family:'Playfair Display',serif; font-style:italic;
     font-size:clamp(2.4rem,5vw,3.8rem); color:var(--text-900);
@@ -522,6 +541,52 @@
     transition:color .2s;
   }
   .footer-link:hover { color:rgba(240,237,230,.65); }
+
+  /* ─── Order modal ─────────────────── */
+  #order-modal .modal { padding: 0; overflow: hidden; }
+  #order-modal .modal-body {
+    padding: 32px 40px 40px;
+    overflow-y: auto;
+    max-height: calc(90vh - 116px);
+  }
+  .order-modal-header {
+    padding: 28px 40px 24px;
+    background: var(--cream);
+    border-bottom: 1.5px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .order-modal-palm {
+    position: absolute;
+    top: 0; right: 0;
+    width: 52%;
+    pointer-events: none;
+    user-select: none;
+    opacity: 1;
+    z-index: 0;
+  }
+  .order-modal-header > *:not(.order-modal-palm) { position: relative; z-index: 1; }
+  .order-modal-label {
+    font-size: .7rem; font-weight: 800; letter-spacing: .15em;
+    text-transform: uppercase; color: var(--text-400); margin-bottom: 8px;
+  }
+  .order-modal-cookie-name {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 1.55rem; font-weight: 700; color: var(--text-900); line-height: 1.2;
+    padding-right: 44px;
+  }
+  .order-modal-header .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--cream-dark); color: var(--text-600);
+  }
+  .order-modal-header .modal-close:hover { background: var(--border); color: var(--text-900); }
+  #order-form .amount-input { width: 100%; }
+  #order-form .amount-input input[type="number"] { flex: 1; width: auto; }
+  @media (max-width: 600px) {
+    #order-modal .modal-body { padding: 24px 20px 28px; max-height: calc(90vh - 100px); }
+    .order-modal-header { padding: 22px 20px 20px; }
+    .order-modal-cookie-name { font-size: 1.3rem; }
+  }
   </style>
 </head>
 <body>
@@ -666,6 +731,8 @@
 
   <!-- COOKIES -->
   <section class="cookies-section" id="cookies">
+    <img src="./assets/images/palm-leaves.png" class="cookies-palm" alt="" aria-hidden="true">
+    <img src="./assets/images/palm-leaves-2.png" class="cookies-palm-2" alt="" aria-hidden="true">
     <div class="container">
       <h2 class="cookies-title">Fresh from the oven.</h2>
       <div class="cookies-grid" id="cookies-grid">
@@ -703,48 +770,54 @@
   </footer>
 
   <!-- ORDER MODAL -->
-  <div class="modal-overlay hidden" id="order-modal" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
+  <div class="modal-overlay hidden" id="order-modal" role="dialog" aria-modal="true" aria-labelledby="selected-cookie-display">
     <div class="modal">
-      <button class="modal-close" id="close-order-modal" aria-label="Close">&#x2715;</button>
-      <div id="order-form-view">
-        <h2 id="order-modal-title">Place Your Order</h2>
-        <form id="order-form" novalidate>
-          <div class="form-group">
-            <label>Cookie</label>
-            <div class="selected-cookie-display" id="selected-cookie-display"></div>
-          </div>
-          <div class="form-group">
-            <label for="customer-name">Your Name</label>
-            <input type="text" id="customer-name" placeholder="Enter your name" autocomplete="name" required>
-          </div>
-          <div class="form-group">
-            <label>Cookie Size</label>
-            <div class="size-toggle">
-              <button type="button" class="size-btn active" data-size="standard">Standard<span>Regular size</span></button>
-              <button type="button" class="size-btn" data-size="small">Mini<span>Bite-sized</span></button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="cookie-amount">How many?</label>
-            <div class="amount-input">
-              <button type="button" class="amount-btn" id="decrease-amount" aria-label="Decrease">&#x2212;</button>
-              <input type="number" id="cookie-amount" value="6" min="1" max="999" aria-label="Amount">
-              <button type="button" class="amount-btn" id="increase-amount" aria-label="Increase">&#x2B;</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="order-note">Note <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-            <textarea id="order-note" placeholder="Any wishes? Allergies? Just say hi?"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary btn-full btn-large" id="order-submit-btn">Place Order</button>
-        </form>
+      <div class="order-modal-header">
+        <img src="./assets/images/palm-leaves.png" class="order-modal-palm" alt="" aria-hidden="true">
+        <p class="order-modal-label">Place your order</p>
+        <div class="order-modal-cookie-name" id="selected-cookie-display"></div>
+        <button class="modal-close" id="close-order-modal" aria-label="Close">&#x2715;</button>
       </div>
-      <div id="order-success-view" class="order-success hidden">
-        <div style="font-size:3rem;margin-bottom:14px;color:var(--green-bright)">&#10003;</div>
-        <h2>Order placed!</h2>
-        <p style="margin-bottom:4px">Your cookies are on the list.</p>
-        <div class="order-summary" id="order-summary-details"></div>
-        <button class="btn btn-primary btn-full btn-large" id="order-success-close">Sweet!</button>
+      <div class="modal-body">
+        <div id="order-form-view">
+          <form id="order-form" novalidate>
+            <div class="form-group">
+              <label for="customer-name">Your Name</label>
+              <input type="text" id="customer-name" placeholder="Enter your name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label>Cookie Size</label>
+              <div class="size-toggle">
+                <button type="button" class="size-btn active" data-size="standard">Standard<span>Regular size</span></button>
+                <button type="button" class="size-btn" data-size="small">Mini<span>Bite-sized</span></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="cookie-amount">How many?</label>
+              <div class="amount-input">
+                <button type="button" class="amount-btn" id="decrease-amount" aria-label="Decrease">
+                  <svg viewBox="0 -81.34 276.24 200.21" width="16" height="16" fill="currentColor"><path d="M119.38,37.52l-103.98-.02C6.13,35.29.16,27.94,0,19.14S5.89,2.33,15.4.05l103.98-.02,37.46-.04,103.42.3c9.47.03,15.75,10.03,15.97,17.95.15,9.71-6.24,17.35-16,19.28l-103.39-.03"/></svg>
+                </button>
+                <input type="number" id="cookie-amount" value="6" min="1" max="999" aria-label="Amount">
+                <button type="button" class="amount-btn" id="increase-amount" aria-label="Increase">
+                  <svg viewBox="0 0 276.24 276.24" width="16" height="16" fill="currentColor"><path d="M156.86,260.58c-2.19,9.87-9.99,15.77-19.12,15.66-9-.18-16.61-6.5-18.38-16l.02-103.38-103.98-.02C6.13,154.63.16,147.28,0,138.48s5.88-16.81,15.4-19.09l103.98-.02-.02-103.38C121.12,6.49,128.75.17,137.75,0c9.37-.15,17.3,6.23,19.12,16l-.02,103.34,103.42.3c9.47.03,15.75,10.03,15.97,17.95.15,9.71-6.24,17.35-16,19.28l-103.39-.03v103.73Z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="order-note">Note <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <textarea id="order-note" placeholder="Any wishes? Allergies? Just say hi?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full btn-large" id="order-submit-btn">Place Order</button>
+          </form>
+        </div>
+        <div id="order-success-view" class="order-success hidden">
+          <div style="font-size:3rem;margin-bottom:14px;color:var(--green-bright)">&#10003;</div>
+          <h2>Order placed!</h2>
+          <p style="margin-bottom:4px">Your cookies are on the list.</p>
+          <div class="order-summary" id="order-summary-details"></div>
+          <button class="btn btn-primary btn-full btn-large" id="order-success-close">Sweet!</button>
+        </div>
       </div>
     </div>
   </div>
