@@ -356,3 +356,19 @@ textarea { resize: vertical; min-height: 90px; }
   .size-toggle { flex-direction:column; }
   .cookie-card-actions { flex-direction:column; }
 }
+
+/* ── Dark mode tokens ────────────────────────────────────── */
+[data-theme="dark"] {
+  --cream:        #131c0e;
+  --cream-dark:   #1a2813;
+  --card-bg:      #1a2813;
+  --section-bg:   #0f190a;
+  --border:       #2d4422;
+  --text-900:     #e8f0e2;
+  --text-600:     #a8c89a;
+  --text-400:     #6a8f5d;
+  --shadow-sm:    0 2px 8px rgba(0,0,0,.3);
+  --shadow-md:    0 6px 24px rgba(0,0,0,.45);
+  --shadow-lg:    0 16px 48px rgba(0,0,0,.6);
+}
+[data-theme="dark"] body { background: #0f190a; }

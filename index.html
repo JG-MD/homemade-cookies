@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
+  <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')</script>
   <link rel="stylesheet" href="./css/style.css">
   <style>
   /* ═══════════════════════════════════════
@@ -68,6 +69,32 @@
   .nav-admin-btn svg { width: 18px; height: 18px; }
   .site-header.scrolled .nav-admin-btn { color: var(--text-400); }
   .site-header.scrolled .nav-admin-btn:hover { color: var(--text-900); background: var(--green-wash); }
+  .nav-theme-btn {
+    width: 36px; height: 36px; border-radius: 50%; margin-left: 2px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none;
+    color: rgba(255,255,255,.45);
+    transition: color .2s, background .2s;
+    flex-shrink: 0;
+  }
+  .nav-theme-btn:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.1); }
+  .site-header.scrolled .nav-theme-btn { color: var(--text-400); }
+  .site-header.scrolled .nav-theme-btn:hover { color: var(--text-900); background: var(--green-wash); }
+  .theme-icon {
+    display: inline-block; width: 18px; height: 18px;
+    background-color: currentColor;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    pointer-events: none;
+  }
+  .mobile-theme-btn {
+    background: none; border: none;
+    color: rgba(255,255,255,.25); font-size: .78rem; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; transition: color .2s;
+  }
+  .mobile-theme-btn:hover { color: rgba(255,255,255,.55); }
+  .mobile-theme-btn .theme-icon { width: 14px; height: 14px; }
 
   /* ── Mobile burger ───────────────────── */
   .nav-burger {
@@ -616,6 +643,16 @@
     .order-modal-header { padding: 22px 20px 20px; }
     .order-modal-cookie-name { font-size: 1.3rem; }
   }
+
+  /* ── Dark mode page overrides ─────────── */
+  [data-theme="dark"] .how-section     { background: var(--card-bg); }
+  [data-theme="dark"] .reviews-section { background: var(--card-bg); }
+  [data-theme="dark"] .site-header.scrolled {
+    background: rgba(19,28,14,.97);
+    box-shadow: 0 1px 0 rgba(255,255,255,.04);
+  }
+  [data-theme="dark"] .site-header.scrolled .nav-logo img { filter: brightness(0) invert(1); }
+  [data-theme="dark"] select { background-color: var(--card-bg); }
   </style>
 </head>
 <body>
@@ -633,6 +670,9 @@
         <a href="#reviews" class="nav-link">Reviews</a>
         <a href="#" class="nav-link" id="track-order-btn">Track Order</a>
         <a href="#cookies" class="nav-cta">Order now</a>
+        <button class="nav-theme-btn" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon"></span>
+        </button>
         <a href="./admin.html" class="nav-admin-btn" title="Admin Login">
           <svg viewBox="-42 0 512 512.001" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
             <path d="m210.351562 246.632812c33.882813 0 63.21875-12.152343 87.195313-36.128906 23.96875-23.972656 36.125-53.304687 36.125-87.191406 0-33.875-12.152344-63.210938-36.128906-87.191406-23.976563-23.96875-53.3125-36.121094-87.191407-36.121094-33.886718 0-63.21875 12.152344-87.191406 36.125s-36.128906 53.308594-36.128906 87.1875c0 33.886719 12.15625 63.222656 36.128906 87.195312 23.980469 23.96875 53.316406 36.125 87.191406 36.125zm-65.972656-189.292968c18.394532-18.394532 39.972656-27.335938 65.972656-27.335938 25.996094 0 47.578126 8.941406 65.976563 27.335938 18.394531 18.398437 27.339844 39.980468 27.339844 65.972656 0 26-8.945313 47.578125-27.339844 65.976562-18.398437 18.398438-39.980469 27.339844-65.976563 27.339844-25.992187 0-47.570312-8.945312-65.972656-27.339844-18.398437-18.394531-27.34375-39.976562-27.34375-65.976562 0-25.992188 8.945313-47.574219 27.34375-65.972656zm0 0"/>
@@ -657,6 +697,11 @@
       <a href="./privacy.html">Privacy Policy</a>
       <span style="color:rgba(255,255,255,.12);margin:0 12px">·</span>
       <a href="./admin.html">Admin</a>
+      <span style="color:rgba(255,255,255,.12);margin:0 12px">·</span>
+      <button class="mobile-theme-btn" id="theme-toggle-mobile" aria-label="Toggle dark mode">
+        <span class="theme-icon" id="theme-icon-mobile"></span>
+        <span id="theme-label-mobile">Dark mode</span>
+      </button>
     </div>
   </div>
 
@@ -947,6 +992,34 @@
     });
 
     _overlay.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+
+    /* ── Theme toggle ─────────────────────── */
+    const MOON_URL = './assets/icons/moon.svg';
+    const SUN_URL  = './assets/icons/sun.svg';
+
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('theme', t);
+      const isDark = t === 'dark';
+      const maskUrl = `url('${isDark ? SUN_URL : MOON_URL}')`;
+      ['theme-icon', 'theme-icon-mobile'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.webkitMaskImage = maskUrl;
+        el.style.maskImage = maskUrl;
+      });
+      const lbl = document.getElementById('theme-label-mobile');
+      if (lbl) lbl.textContent = isDark ? 'Light mode' : 'Dark mode';
+    }
+
+    applyTheme(localStorage.getItem('theme') || 'light');
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+    document.getElementById('theme-toggle-mobile').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
