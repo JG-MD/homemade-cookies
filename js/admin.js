@@ -471,6 +471,37 @@ document.getElementById('confirm-ok').addEventListener('click', async () => {
   pendingDeleteId = null; pendingDeleteType = null;
 });
 
+// ── CSV Export ─────────────────────────────────────────────
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  const rows = activeFilter === 'all'
+    ? allOrders
+    : allOrders.filter(o => o.status === activeFilter);
+
+  if (rows.length === 0) { showToast('No orders to export.', 'info'); return; }
+
+  const headers = ['Name', 'Cookie', 'Size', 'Amount', 'Status', 'Note', 'Time'];
+  const data = rows.map(o => [
+    o.customer_name,
+    o.cookie_name,
+    o.size === 'small' ? 'Mini' : 'Standard',
+    o.amount,
+    o.status,
+    o.note || '',
+    fmtDateTime(o.created_at),
+  ]);
+
+  const csv = [headers, ...data]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `cookie-orders-${activeFilter}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Exported ${rows.length} order${rows.length !== 1 ? 's' : ''}.`, 'success');
+});
+
 // ── Helpers ────────────────────────────────────────────────
 function fmtDateTime(iso) {
   return new Date(iso).toLocaleString('de-DE', {
