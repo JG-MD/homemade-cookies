@@ -477,6 +477,63 @@
   }
   .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; }
   .empty-state p { color:var(--text-400); font-size:1rem; }
+  /* ─── Deadline floating banner ─────── */
+  .deadline-banner {
+    position: fixed; bottom: 24px; right: 24px;
+    z-index: 300;
+    background: var(--dark);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: var(--r-xl);
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 12px 48px rgba(0,0,0,.45);
+    width: min(300px, calc(100vw - 48px));
+  }
+  .deadline-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .deadline-label {
+    font-size: .68rem; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--green-pale);
+  }
+  .deadline-close {
+    width: 26px; height: 26px; border-radius: 50%; border: none; flex-shrink: 0;
+    background: rgba(255,255,255,.08); color: rgba(255,255,255,.4);
+    font-size: .85rem; display: flex; align-items: center; justify-content: center;
+    transition: background .2s, color .2s;
+  }
+  .deadline-close:hover { background: rgba(255,255,255,.2); color: #fff; }
+  .deadline-banner-msg {
+    font-weight: 800; font-size: .98rem; color: #fff; line-height: 1.5;
+  }
+  .deadline-footer { display: flex; flex-direction: column; gap: 14px; }
+  .deadline-countdown { display: flex; align-items: center; gap: 4px; }
+  .cd-unit {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(255,255,255,.08); border-radius: 8px;
+    padding: 7px 10px; min-width: 44px;
+  }
+  .cd-unit strong {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem; font-weight: 700; color: #fff; line-height: 1;
+  }
+  .cd-unit small {
+    font-size: .58rem; font-weight: 800; letter-spacing: .1em;
+    text-transform: uppercase; color: rgba(255,255,255,.35); margin-top: 3px;
+  }
+  .cd-sep {
+    font-size: 1rem; font-weight: 700;
+    color: rgba(255,255,255,.2); padding-bottom: 14px; margin: 0 1px;
+  }
+  .deadline-banner-cta {
+    display: block; width: 100%; text-align: center;
+    padding: 11px 20px;
+    background: var(--green-bright); color: #fff;
+    border-radius: 999px; font-family: 'Nunito', sans-serif;
+    font-size: .85rem; font-weight: 800; letter-spacing: .03em;
+    transition: background .2s;
+  }
+  .deadline-banner-cta:hover { background: var(--green-mid); }
 
   /* ─── Reviews section ──────────────── */
   .reviews-section { padding: 110px 0 130px; background: #fff; }
@@ -647,6 +704,10 @@
   /* ── Dark mode page overrides ─────────── */
   [data-theme="dark"] .how-section     { background: var(--card-bg); }
   [data-theme="dark"] .reviews-section { background: var(--card-bg); }
+  [data-theme="dark"] .deadline-banner {
+    background: var(--dark-2);
+    box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.12);
+  }
   [data-theme="dark"] .site-header.scrolled {
     background: rgba(19,28,14,.97);
     box-shadow: 0 1px 0 rgba(255,255,255,.04);
@@ -956,6 +1017,27 @@
         <button type="submit" class="btn btn-primary btn-full" id="status-submit-btn">Check Status</button>
       </form>
       <div id="status-results" class="status-results hidden"></div>
+    </div>
+  </div>
+
+  <!-- Deadline countdown banner (fixed floating) -->
+  <div class="deadline-banner hidden" id="deadline-banner">
+    <div class="deadline-header">
+      <span class="deadline-label">Fresh Batch — Order Now</span>
+      <button class="deadline-close" id="deadline-banner-close" aria-label="Dismiss">&#x2715;</button>
+    </div>
+    <p class="deadline-banner-msg" id="deadline-banner-msg"></p>
+    <div class="deadline-footer">
+      <div class="deadline-countdown">
+        <span class="cd-unit"><strong id="cd-days">00</strong><small>d</small></span>
+        <span class="cd-sep">:</span>
+        <span class="cd-unit"><strong id="cd-hours">00</strong><small>h</small></span>
+        <span class="cd-sep">:</span>
+        <span class="cd-unit"><strong id="cd-mins">00</strong><small>m</small></span>
+        <span class="cd-sep">:</span>
+        <span class="cd-unit"><strong id="cd-secs">00</strong><small>s</small></span>
+      </div>
+      <a href="#cookies" class="deadline-banner-cta">Order Now →</a>
     </div>
   </div>
 

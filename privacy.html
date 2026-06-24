@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
+  <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')</script>
   <link rel="stylesheet" href="./css/style.css">
   <style>
     .privacy-hero {
@@ -72,6 +73,33 @@
     .privacy-footer p { color: var(--text-muted); font-size: .82rem; }
     .privacy-footer a { color: rgba(240,237,230,.4); }
     .privacy-footer a:hover { color: rgba(240,237,230,.7); }
+    /* ── Dark mode text overrides ─────────── */
+    [data-theme="dark"] .privacy-content h2 {
+      color: var(--green-pale);
+      border-color: var(--border);
+    }
+    [data-theme="dark"] .privacy-content p,
+    [data-theme="dark"] .privacy-content li { color: #c8dfc0; }
+    [data-theme="dark"] .privacy-content strong { color: var(--text-900); }
+    [data-theme="dark"] .privacy-back { color: rgba(200,223,192,.4); }
+    [data-theme="dark"] .privacy-back:hover { color: rgba(200,223,192,.75); }
+
+    .privacy-theme-btn {
+      background: none; border: none;
+      color: rgba(240,237,230,.4);
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'Nunito', sans-serif; font-size: .82rem; font-weight: 700;
+      vertical-align: middle; transition: color .2s;
+    }
+    .privacy-theme-btn:hover { color: rgba(240,237,230,.7); }
+    .theme-icon {
+      display: inline-block; width: 14px; height: 14px;
+      background-color: currentColor;
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -189,8 +217,36 @@
   </div>
 
   <div class="privacy-footer">
-    <p>&copy; 2026 Cookie Corner &nbsp;&middot;&nbsp; <a href="./index.html">Back to the shop</a></p>
+    <p>
+      &copy; 2026 Cookie Corner &nbsp;&middot;&nbsp; <a href="./index.html">Back to the shop</a>
+      &nbsp;&middot;&nbsp;
+      <button class="privacy-theme-btn" id="theme-toggle" aria-label="Toggle dark mode">
+        <span class="theme-icon" id="theme-icon"></span>
+        <span id="theme-label">Dark mode</span>
+      </button>
+    </p>
   </div>
 
+  <script>
+    const MOON_URL = './assets/icons/moon.svg';
+    const SUN_URL  = './assets/icons/sun.svg';
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('theme', t);
+      const isDark = t === 'dark';
+      const el = document.getElementById('theme-icon');
+      if (el) {
+        const url = `url('${isDark ? SUN_URL : MOON_URL}')`;
+        el.style.webkitMaskImage = url;
+        el.style.maskImage = url;
+      }
+      const lbl = document.getElementById('theme-label');
+      if (lbl) lbl.textContent = isDark ? 'Light mode' : 'Dark mode';
+    }
+    applyTheme(localStorage.getItem('theme') || 'light');
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  </script>
 </body>
 </html>

@@ -6,8 +6,9 @@
 let allOrders    = [];
 let allReviews   = [];
 let activeFilter = 'all';
-let pendingDeleteId  = null;
-let pendingDeleteType = null; // 'order' | 'cookie' | 'review'
+let pendingDeleteId   = null;
+let pendingDeleteType = null;
+let batchSettings     = { active: false, deadline: null, label: null };
 
 // ── Auth ───────────────────────────────────────────────────
 async function checkAuth() {
@@ -66,7 +67,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
 
 // ── Dashboard Init ─────────────────────────────────────────
 async function initDashboard() {
-  await Promise.all([loadOrders(), loadCookiesAdmin(), loadReviewsAdmin()]);
+  await Promise.all([loadOrders(), loadCookiesAdmin(), loadReviewsAdmin(), loadBatchSettings()]);
   subscribeToOrders();
 }
 
@@ -497,6 +498,74 @@ function showToast(msg, type = 'info', duration = 3500) {
     setTimeout(() => toast.remove(), 320);
   }, duration);
 }
+
+// ── Batch / Order window ───────────────────────────────────
+async function loadBatchSettings() {
+  const { data } = await supabaseClient
+    .from('batch_settings')
+    .select('*')
+    .eq('id', 1)
+    .single();
+
+  batchSettings = data || { active: false, deadline: null, label: null };
+  renderBatchCard();
+}
+
+function renderBatchCard() {
+  const toggle = document.getElementById('batch-toggle');
+  const dot    = document.getElementById('batch-status-dot');
+  const lbl    = document.getElementById('batch-status-label');
+
+  const isOpen = !!batchSettings.active;
+  toggle.classList.toggle('on', isOpen);
+  dot.classList.toggle('open', isOpen);
+  lbl.textContent = isOpen ? 'Orders Open' : 'Orders Closed';
+
+  if (batchSettings.deadline) {
+    const d = new Date(batchSettings.deadline);
+    document.getElementById('batch-deadline').value =
+      new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  } else {
+    document.getElementById('batch-deadline').value = '';
+  }
+  document.getElementById('batch-label').value = batchSettings.label || '';
+}
+
+document.getElementById('batch-toggle').addEventListener('click', async () => {
+  const newActive = !document.getElementById('batch-toggle').classList.contains('on');
+  const { error } = await supabaseClient.from('batch_settings').upsert({
+    id: 1, active: newActive,
+    deadline: batchSettings.deadline,
+    label: batchSettings.label,
+  });
+  if (error) { showToast('Could not update order window.', 'error'); return; }
+  batchSettings.active = newActive;
+  renderBatchCard();
+  showToast(newActive ? 'Orders are now open! 🟢' : 'Orders are now closed. 🔴', newActive ? 'success' : 'info');
+});
+
+document.getElementById('batch-save-btn').addEventListener('click', async () => {
+  const deadlineVal = document.getElementById('batch-deadline').value;
+  const labelVal    = document.getElementById('batch-label').value.trim();
+  const btn         = document.getElementById('batch-save-btn');
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const newDeadline = deadlineVal ? new Date(deadlineVal).toISOString() : null;
+  const { error } = await supabaseClient.from('batch_settings').upsert({
+    id: 1,
+    active: batchSettings.active,
+    deadline: newDeadline,
+    label: labelVal || null,
+  });
+
+  btn.disabled = false; btn.textContent = 'Save';
+  if (error) { showToast('Could not save settings.', 'error'); return; }
+
+  batchSettings.deadline = newDeadline;
+  batchSettings.label    = labelVal || null;
+  showToast('Batch settings saved!', 'success');
+});
 
 // ── Boot ───────────────────────────────────────────────────
 checkAuth();

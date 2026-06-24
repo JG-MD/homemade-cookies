@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
+  <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')</script>
   <link rel="stylesheet" href="./css/style.css">
   <style>
     /* ── Login screen ─────────────────────────────────────── */
@@ -336,6 +337,53 @@
     .confirm-actions { display: flex; gap: 10px; }
     .confirm-actions .btn { flex: 1; }
 
+    /* ── Theme toggle ────────────────────────────────────── */
+    .admin-theme-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none;
+      color: rgba(255,255,255,.4);
+      transition: color .2s, background .2s; flex-shrink: 0;
+    }
+    .admin-theme-btn:hover { color: rgba(255,255,255,.75); background: rgba(255,255,255,.1); }
+    .theme-icon {
+      display: inline-block; width: 17px; height: 17px;
+      background-color: currentColor;
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      pointer-events: none;
+    }
+
+    /* ── Dark mode overrides ─────────────────────────────── */
+    [data-theme="dark"] .login-error {
+      background: rgba(185,28,28,.15); border-color: rgba(252,165,165,.25);
+    }
+    [data-theme="dark"] .delete-order-btn:hover { background: rgba(185,28,28,.2); color: #f87171; }
+
+    /* ── Batch settings card ─────────────────────────────── */
+    .batch-card {
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: var(--r-lg); padding: 20px 24px;
+      margin-bottom: 24px; box-shadow: var(--shadow-sm);
+    }
+    .batch-card-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .batch-card-status {
+      display: flex; align-items: center; gap: 9px;
+      font-weight: 800; font-size: .92rem; color: var(--text-900);
+    }
+    .batch-status-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0; transition: background .2s;
+    }
+    .batch-status-dot.open { background: var(--green-bright); }
+    .batch-card-fields {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; align-items: end;
+    }
+
     /* ── Mobile ───────────────────────────────────────────── */
     @media (max-width: 680px) {
       /* Login */
@@ -390,6 +438,8 @@
 
       /* Add cookie form */
       .add-cookie-card { padding: 22px 18px; }
+      /* Batch card */
+      .batch-card-fields { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -441,6 +491,9 @@
         <span>Admin</span>
       </a>
       <div class="admin-header-right">
+        <button class="admin-theme-btn" id="theme-toggle" aria-label="Toggle dark mode">
+          <span class="theme-icon" id="theme-icon"></span>
+        </button>
         <span class="admin-user" id="admin-user-email"></span>
         <button class="btn-logout" id="logout-btn">Sign Out</button>
       </div>
@@ -465,6 +518,29 @@
 
       <!-- ─ ORDERS TAB ─ -->
       <div class="tab-panel active" id="tab-orders">
+
+        <!-- Order window / batch -->
+        <div class="batch-card">
+          <div class="batch-card-top">
+            <div class="batch-card-status">
+              <span class="batch-status-dot" id="batch-status-dot"></span>
+              <span id="batch-status-label">Loading…</span>
+            </div>
+            <button class="toggle-btn" id="batch-toggle" title="Toggle orders open / closed"></button>
+          </div>
+          <div class="batch-card-fields">
+            <div class="form-group">
+              <label for="batch-deadline">Deadline <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <input type="datetime-local" id="batch-deadline">
+            </div>
+            <div class="form-group">
+              <label for="batch-label">Banner text <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <input type="text" id="batch-label" placeholder="e.g. Orders close Sunday midnight">
+            </div>
+            <button class="btn btn-secondary" id="batch-save-btn" style="justify-self:start">Save</button>
+          </div>
+        </div>
+
         <!-- Stats -->
         <div class="stats-row">
           <div class="stat-card">
@@ -602,5 +678,23 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./js/config.js"></script>
   <script src="./js/admin.js"></script>
+  <script>
+    const MOON_URL = './assets/icons/moon.svg';
+    const SUN_URL  = './assets/icons/sun.svg';
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('theme', t);
+      const isDark = t === 'dark';
+      const el = document.getElementById('theme-icon');
+      if (!el) return;
+      const url = `url('${isDark ? SUN_URL : MOON_URL}')`;
+      el.style.webkitMaskImage = url;
+      el.style.maskImage = url;
+    }
+    applyTheme(localStorage.getItem('theme') || 'light');
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  </script>
 </body>
 </html>

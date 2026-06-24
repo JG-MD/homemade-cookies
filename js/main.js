@@ -8,15 +8,73 @@ let selectedCookieName = '';
 let selectedSize       = 'standard';
 let selectedRating     = 0;
 let availableCookies   = [];
+let batchOpen          = true;
+let countdownInterval  = null;
 
 const RATING_LABELS = ['', 'Terrible 😬', 'Not great 😕', 'Pretty good 🙂', 'Loved it 😍', 'Life-changing 🤩'];
 const STATUS_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready for pickup!', done: 'Picked up' };
 
 // ── Init ───────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadBatchSettings();
   loadCookies();
   loadAllReviews();
 });
+
+// ── Batch / Order window ───────────────────────────────────
+async function loadBatchSettings() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('batch_settings')
+      .select('*')
+      .eq('id', 1)
+      .single();
+
+    if (error || !data || !data.active || !data.deadline) return;
+
+    const deadline = new Date(data.deadline);
+    if (deadline <= new Date()) { batchOpen = false; return; }
+
+    // Show floating countdown banner
+    document.getElementById('deadline-banner-msg').textContent =
+      data.label || 'Last chance to order!';
+    document.getElementById('deadline-banner').classList.remove('hidden');
+    startCountdown(deadline);
+  } catch {
+    // Table not yet created — keep defaults
+  }
+}
+
+function startCountdown(deadline) {
+  document.getElementById('deadline-banner-close').addEventListener('click', () => {
+    document.getElementById('deadline-banner').classList.add('hidden');
+    clearInterval(countdownInterval);
+  }, { once: true });
+
+  if (countdownInterval) clearInterval(countdownInterval);
+
+  function tick() {
+    const diff = deadline - new Date();
+    if (diff <= 0) {
+      clearInterval(countdownInterval);
+      document.getElementById('deadline-banner')?.classList.add('hidden');
+      batchOpen = false;
+      loadCookies();
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('cd-days').textContent  = String(d).padStart(2, '0');
+    document.getElementById('cd-hours').textContent = String(h).padStart(2, '0');
+    document.getElementById('cd-mins').textContent  = String(m).padStart(2, '0');
+    document.getElementById('cd-secs').textContent  = String(s).padStart(2, '0');
+  }
+
+  tick();
+  countdownInterval = setInterval(tick, 1000);
+}
 
 // ── Load & Render Cookies ──────────────────────────────────
 function showGridError(msg) {
@@ -118,9 +176,9 @@ function renderCookieCard(cookie, reviews) {
         ${ratingHtml}
       </div>
       <div class="cookie-card-actions">
-        <button class="btn btn-primary order-btn"
+        ${batchOpen ? `<button class="btn btn-primary order-btn"
           data-cookie-id="${cookie.id}"
-          data-cookie-name="${esc(cookie.name)}">Order</button>
+          data-cookie-name="${esc(cookie.name)}">Order</button>` : ''}
         <button class="btn btn-secondary review-card-btn"
           data-cookie-id="${cookie.id}"
           data-cookie-name="${esc(cookie.name)}">Review</button>
@@ -483,6 +541,11 @@ function starsHtml(avg) {
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmtDeadline(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })
+    + ' at ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 function esc(str) {
