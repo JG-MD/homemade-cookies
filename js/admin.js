@@ -9,6 +9,8 @@ let activeFilter = 'all';
 let pendingDeleteId   = null;
 let pendingDeleteType = null;
 let batchSettings     = { active: false, deadline: null, label: null };
+let allCookies        = [];
+let editOrderSize     = 'standard';
 
 // ── Auth ───────────────────────────────────────────────────
 async function checkAuth() {
@@ -145,7 +147,10 @@ function renderOrders() {
         </div>
       </td>
       <td data-label="">
-        <button class="delete-order-btn" data-order-id="${o.id}" title="Delete order"><span class="delete-icon"></span></button>
+        <div class="order-row-actions">
+          <button class="edit-order-btn" data-order-id="${o.id}" title="Edit order">Edit</button>
+          <button class="delete-order-btn" data-order-id="${o.id}" title="Delete order"><span class="delete-icon"></span></button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -176,6 +181,14 @@ function renderOrders() {
     });
   });
 
+  // Edit buttons
+  tbody.querySelectorAll('.edit-order-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const order = allOrders.find(o => o.id === btn.dataset.orderId);
+      if (order) openEditModal(order);
+    })
+  );
+
   // Delete buttons
   tbody.querySelectorAll('.delete-order-btn').forEach(btn =>
     btn.addEventListener('click', () => confirmDelete('order', btn.dataset.orderId, 'Delete this order?'))
@@ -196,15 +209,19 @@ async function updateOrderStatus(orderId, status) {
 }
 
 function updateStats() {
-  const total    = allOrders.length;
-  const pending  = allOrders.filter(o => o.status === 'pending').length;
-  const ready    = allOrders.filter(o => o.status === 'ready').length;
-  const done     = allOrders.filter(o => o.status === 'done').length;
+  const total   = allOrders.length;
+  const pending = allOrders.filter(o => o.status === 'pending').length;
+  const ready   = allOrders.filter(o => o.status === 'ready').length;
+  const done    = allOrders.filter(o => o.status === 'done').length;
+  const cookies = allOrders
+    .filter(o => o.status !== 'done')
+    .reduce((sum, o) => sum + (o.amount || 0), 0);
 
   document.getElementById('stat-total').textContent   = total;
   document.getElementById('stat-pending').textContent = pending;
   document.getElementById('stat-ready').textContent   = ready;
   document.getElementById('stat-done').textContent    = done;
+  document.getElementById('stat-cookies').textContent = cookies;
 
   document.getElementById('pending-badge').textContent = pending;
   document.getElementById('pending-badge').className   = 'tab-badge' + (pending > 0 ? ' urgent' : '');
@@ -259,7 +276,8 @@ async function loadCookiesAdmin() {
 
   if (error) { showToast('Could not load cookies.', 'error'); grid.innerHTML = ''; return; }
 
-  document.getElementById('cookies-count-badge').textContent = (cookies || []).length;
+  allCookies = cookies || [];
+  document.getElementById('cookies-count-badge').textContent = allCookies.length;
 
   if (!cookies || cookies.length === 0) {
     grid.innerHTML = '<p style="color:var(--text-300);font-size:.9rem">No cookies yet. Add one below!</p>';
@@ -417,6 +435,92 @@ function renderReviewsAdmin() {
     )
   );
 }
+
+// ── Edit Order Modal ───────────────────────────────────────
+function openEditModal(order) {
+  editOrderSize = order.size;
+  document.getElementById('edit-order-id').value      = order.id;
+  document.getElementById('edit-customer-name').value = order.customer_name;
+  document.getElementById('edit-amount').value        = order.amount;
+  document.getElementById('edit-note').value          = order.note || '';
+
+  const sel = document.getElementById('edit-cookie-select');
+  sel.innerHTML = allCookies.length
+    ? allCookies.map(c =>
+        `<option value="${c.id}"${c.id === order.cookie_id ? ' selected' : ''}>${esc(c.name)}</option>`
+      ).join('')
+    : `<option value="${order.cookie_id}">${esc(order.cookie_name)}</option>`;
+
+  document.querySelectorAll('.edit-size-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.size === order.size)
+  );
+
+  document.getElementById('edit-order-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-order-modal').classList.add('hidden');
+}
+
+document.getElementById('close-edit-order-modal').addEventListener('click', closeEditModal);
+document.getElementById('edit-order-cancel').addEventListener('click', closeEditModal);
+document.getElementById('edit-order-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-order-modal')) closeEditModal();
+});
+
+document.querySelectorAll('.edit-size-btn').forEach(btn =>
+  btn.addEventListener('click', () => {
+    editOrderSize = btn.dataset.size;
+    document.querySelectorAll('.edit-size-btn').forEach(b => b.classList.toggle('active', b === btn));
+  })
+);
+
+document.getElementById('edit-decrease-amount').addEventListener('click', () => {
+  const el = document.getElementById('edit-amount');
+  el.value = Math.max(1, parseInt(el.value || 1) - 1);
+});
+document.getElementById('edit-increase-amount').addEventListener('click', () => {
+  const el = document.getElementById('edit-amount');
+  el.value = parseInt(el.value || 0) + 1;
+});
+
+document.getElementById('edit-order-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const orderId    = document.getElementById('edit-order-id').value;
+  const name       = document.getElementById('edit-customer-name').value.trim();
+  const amount     = parseInt(document.getElementById('edit-amount').value);
+  const note       = document.getElementById('edit-note').value.trim();
+  const sel        = document.getElementById('edit-cookie-select');
+  const cookieId   = sel.value;
+  const cookieName = sel.options[sel.selectedIndex]?.text || '';
+  const btn        = document.getElementById('edit-order-save');
+
+  if (!name || !cookieId || amount < 1) { showToast('Please fill in all required fields.', 'error'); return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const { error } = await supabaseClient.from('orders').update({
+    customer_name: name,
+    cookie_id:     cookieId,
+    cookie_name:   cookieName,
+    size:          editOrderSize,
+    amount,
+    note:          note || null,
+  }).eq('id', orderId);
+
+  btn.disabled = false; btn.textContent = 'Save changes';
+
+  if (error) { showToast('Could not save changes.', 'error'); return; }
+
+  const idx = allOrders.findIndex(o => o.id === orderId);
+  if (idx > -1) {
+    allOrders[idx] = { ...allOrders[idx], customer_name: name, cookie_id: cookieId, cookie_name: cookieName, size: editOrderSize, amount, note: note || null };
+  }
+
+  renderOrders();
+  closeEditModal();
+  showToast('Order updated!', 'success');
+});
 
 // ── Delete confirmation modal ──────────────────────────────
 function confirmDelete(type, id, message) {

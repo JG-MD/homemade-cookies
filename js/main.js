@@ -35,6 +35,13 @@ async function loadBatchSettings() {
     const deadline = new Date(data.deadline);
     if (deadline <= new Date()) { batchOpen = false; return; }
 
+    // Check order cap (50 active orders max)
+    const { count } = await supabaseClient
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pending', 'confirmed', 'ready']);
+    if (count >= 50) { batchOpen = false; return; }
+
     // Show floating countdown banner
     document.getElementById('deadline-banner-msg').textContent =
       data.label || 'Last chance to order!';
@@ -250,7 +257,7 @@ document.getElementById('decrease-amount').addEventListener('click', () => {
 });
 document.getElementById('increase-amount').addEventListener('click', () => {
   const el = document.getElementById('cookie-amount');
-  el.value = parseInt(el.value || 0) + 1;
+  el.value = Math.min(50, parseInt(el.value || 0) + 1);
 });
 
 // Order form submit
@@ -262,11 +269,31 @@ document.getElementById('order-form').addEventListener('submit', async e => {
   const note   = document.getElementById('order-note').value.trim();
   const btn    = document.getElementById('order-submit-btn');
 
-  if (!name)     { showToast('Please enter your name 🙂', 'error'); return; }
-  if (amount < 1) { showToast('Please enter a valid amount', 'error'); return; }
+  if (!name)        { showToast('Please enter your name 🙂', 'error'); return; }
+  if (amount < 1)   { showToast('Please enter a valid amount', 'error'); return; }
+  if (amount > 50)  { showToast('Maximum order quantity is 50.', 'error'); return; }
+  if (!batchOpen) {
+    showToast('Orders are currently closed. Check back later!', 'error');
+    closeOrderModal();
+    return;
+  }
 
   btn.disabled    = true;
   btn.textContent = 'Placing order…';
+
+  // Server-side cap check (race condition guard)
+  const { count: activeCount } = await supabaseClient
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['pending', 'confirmed', 'ready']);
+  if (activeCount >= 50) {
+    showToast('Sorry, this batch is now full (50 orders max). No more orders can be placed.', 'error', 5500);
+    btn.disabled = false; btn.textContent = 'Place Order 🍪';
+    batchOpen = false;
+    closeOrderModal();
+    loadCookies();
+    return;
+  }
 
   const orderCode = generateOrderCode();
 
