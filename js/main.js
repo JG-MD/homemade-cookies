@@ -2,6 +2,9 @@
    COOKIE CORNER — Customer Page Logic
    ============================================================ */
 
+// ── Push ───────────────────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BKz1QWSrmbb0pzlmbh6PFCWf-H8oKpV2odDKEANj3e6Xr4zTIOLveOvAy-t5DnGjzUslp6VcHj0E87vqd1FiAHM'; // replace after running: npx web-push generate-vapid-keys
+
 // ── State ──────────────────────────────────────────────────
 let selectedCookieId   = null;
 let selectedCookieName = '';
@@ -16,6 +19,7 @@ const STATUS_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready: 'Read
 
 // ── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  registerSW();
   await loadBatchSettings();
   loadCookies();
   loadAllReviews();
@@ -47,6 +51,7 @@ async function loadBatchSettings() {
       data.label || 'Last chance to order!';
     document.getElementById('deadline-banner').classList.remove('hidden');
     startCountdown(deadline);
+    initNotifyBtn();
   } catch {
     // Table not yet created — keep defaults
   }
@@ -81,6 +86,65 @@ function startCountdown(deadline) {
 
   tick();
   countdownInterval = setInterval(tick, 1000);
+}
+
+// ── Push Notifications ─────────────────────────────────────
+function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+}
+
+function urlBase64ToUint8Array(b64) {
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64  = (b64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  try {
+    const reg        = await navigator.serviceWorker.ready;
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return false;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+
+    const { keys } = sub.toJSON();
+    await supabaseClient.from('push_subscriptions').upsert(
+      { endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth },
+      { onConflict: 'endpoint' }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function initNotifyBtn() {
+  const btn = document.getElementById('deadline-notify-btn');
+  if (!btn || !('Notification' in window)) { btn?.remove(); return; }
+
+  if (Notification.permission === 'granted') {
+    const reg = await navigator.serviceWorker.ready.catch(() => null);
+    const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
+    if (sub) { btn.textContent = '✓ Notifications on'; btn.disabled = true; return; }
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled    = true;
+    btn.textContent = 'Enabling…';
+    const ok        = await subscribeToPush();
+    btn.textContent = ok ? '✓ Notifications on' : '🔔 Notify me';
+    btn.disabled    = ok;
+  });
 }
 
 // ── Load & Render Cookies ──────────────────────────────────

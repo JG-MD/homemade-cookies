@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Admin — Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
   <link rel="manifest" href="./manifest.json">
@@ -568,7 +568,10 @@
               <label for="batch-label">Banner text <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
               <input type="text" id="batch-label" placeholder="e.g. Orders close Sunday midnight">
             </div>
-            <button class="btn btn-secondary" id="batch-save-btn" style="justify-self:start">Save</button>
+            <div style="display:flex;gap:10px;justify-self:start;flex-wrap:wrap">
+              <button class="btn btn-secondary" id="batch-save-btn">Save</button>
+              <button class="btn btn-secondary" id="batch-remind-btn">Send Reminder</button>
+            </div>
           </div>
         </div>
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
   <link rel="manifest" href="./manifest.json">
@@ -493,7 +493,7 @@
   .empty-state-sub { color:var(--text-400); font-size:.9rem; }
   /* ─── Deadline floating banner ─────── */
   .deadline-banner {
-    position: fixed; bottom: 24px; right: 24px;
+    position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: calc(24px + env(safe-area-inset-right));
     z-index: 300;
     background: var(--dark);
     border: 1px solid rgba(255,255,255,.12);
@@ -548,6 +548,16 @@
     transition: background .2s;
   }
   .deadline-banner-cta:hover { background: var(--green-mid); }
+  .deadline-notify-btn {
+    display: block; width: 100%; text-align: center;
+    padding: 8px 14px; background: none;
+    border: 1px solid rgba(255,255,255,.18); color: rgba(255,255,255,.5);
+    border-radius: 999px; font-family: 'Nunito', sans-serif;
+    font-size: .78rem; font-weight: 700;
+    transition: border-color .2s, color .2s;
+  }
+  .deadline-notify-btn:hover:not(:disabled) { border-color: rgba(255,255,255,.4); color: rgba(255,255,255,.85); }
+  .deadline-notify-btn:disabled { opacity: .6; cursor: default; }
 
   /* ─── Reviews section ──────────────── */
   .reviews-section { padding: 110px 0 130px; background: #fff; }
@@ -1054,6 +1064,7 @@
         <span class="cd-unit"><strong id="cd-secs">00</strong><small>s</small></span>
       </div>
       <a href="#cookies" class="deadline-banner-cta">Order Now →</a>
+      <button class="deadline-notify-btn" id="deadline-notify-btn">🔔 Notify me</button>
     </div>
   </div>
 
