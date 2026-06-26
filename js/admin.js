@@ -680,14 +680,11 @@ document.getElementById('batch-toggle').addEventListener('click', async () => {
 });
 
 async function sendPushNotification(title, body) {
-  try {
-    const { error } = await supabaseClient.functions.invoke('send-push', {
-      body: { title, body, url: 'https://jg-md.github.io/homemade-cookies/' },
-    });
-    if (error) throw error;
-  } catch (err) {
-    console.error('Push notification failed:', err);
-  }
+  const { data, error } = await supabaseClient.functions.invoke('send-push', {
+    body: { title, body, url: 'https://jg-md.github.io/homemade-cookies/' },
+  });
+  if (error) throw error;
+  return data;
 }
 
 document.getElementById('batch-save-btn').addEventListener('click', async () => {
@@ -722,9 +719,13 @@ document.getElementById('batch-save-btn').addEventListener('click', async () => 
 document.getElementById('batch-remind-btn').addEventListener('click', async () => {
   const btn = document.getElementById('batch-remind-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
-  const msg = batchSettings.label || 'Don\'t forget to place your cookie order!';
-  await sendPushNotification('🍪 Cookie Corner — Reminder', msg);
-  showToast('Reminder sent to all subscribers.', 'success');
+  try {
+    const msg  = batchSettings.label || 'Don\'t forget to place your cookie order!';
+    const data = await sendPushNotification('🍪 Cookie Corner — Reminder', msg);
+    showToast(`Reminder sent to ${data?.sent ?? '?'} subscriber(s).`, 'success');
+  } catch (err) {
+    showToast('Failed: ' + (err.message || JSON.stringify(err)), 'error');
+  }
   btn.disabled = false; btn.textContent = 'Send Reminder';
 });
 
