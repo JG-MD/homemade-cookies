@@ -116,11 +116,10 @@ async function subscribeToPush() {
   }
 
   const { keys } = sub.toJSON();
-  const { error } = await supabaseClient.from('push_subscriptions').upsert(
-    { endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth },
-    { onConflict: 'endpoint' }
+  const { error } = await supabaseClient.from('push_subscriptions').insert(
+    { endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth }
   );
-  if (error) throw error;
+  if (error && error.code !== '23505') throw error; // ignore duplicate endpoint
 }
 
 async function initNotifyBtn() {
