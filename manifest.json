@@ -2,7 +2,7 @@
   "name": "Cookie Corner",
   "short_name": "Cookies",
   "description": "Order homemade cookies from your friends.",
-  "start_url": "/index.html",
+  "start_url": "/homemade-cookies/index.html",
   "display": "standalone",
   "background_color": "#2c5e1a",
   "theme_color": "#2c5e1a",
