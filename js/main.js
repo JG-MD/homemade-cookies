@@ -162,7 +162,7 @@ async function initNotifyBtn() {
       } else {
         btn.disabled    = false;
         btn.textContent = '🔔 Notify me';
-        showToast('Could not enable notifications. Try again.', 'error');
+        showToast('Error: ' + (err.message || String(err)), 'error');
       }
     }
   });
