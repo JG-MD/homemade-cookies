@@ -103,34 +103,46 @@ function urlBase64ToUint8Array(b64) {
 }
 
 async function subscribeToPush() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-  try {
-    const reg        = await navigator.serviceWorker.ready;
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return false;
+  const reg        = await navigator.serviceWorker.ready;
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') throw new Error('permission-denied');
 
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
-    }
-
-    const { keys } = sub.toJSON();
-    await supabaseClient.from('push_subscriptions').upsert(
-      { endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth },
-      { onConflict: 'endpoint' }
-    );
-    return true;
-  } catch {
-    return false;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
   }
+
+  const { keys } = sub.toJSON();
+  const { error } = await supabaseClient.from('push_subscriptions').upsert(
+    { endpoint: sub.endpoint, p256dh: keys.p256dh, auth: keys.auth },
+    { onConflict: 'endpoint' }
+  );
+  if (error) throw error;
 }
 
 async function initNotifyBtn() {
   const btn = document.getElementById('deadline-notify-btn');
-  if (!btn || !('Notification' in window)) { btn?.remove(); return; }
+  if (!btn) return;
+
+  // Only show in the installed PWA, not in the browser
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    btn.remove();
+    return;
+  }
+
+  if (!('Notification' in window) || !('PushManager' in window)) {
+    btn.remove();
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    btn.textContent = '🔔 Enable in phone settings';
+    btn.disabled    = true;
+    return;
+  }
 
   if (Notification.permission === 'granted') {
     const reg = await navigator.serviceWorker.ready.catch(() => null);
@@ -141,9 +153,18 @@ async function initNotifyBtn() {
   btn.addEventListener('click', async () => {
     btn.disabled    = true;
     btn.textContent = 'Enabling…';
-    const ok        = await subscribeToPush();
-    btn.textContent = ok ? '✓ Notifications on' : '🔔 Notify me';
-    btn.disabled    = ok;
+    try {
+      await subscribeToPush();
+      btn.textContent = '✓ Notifications on';
+    } catch (err) {
+      if (err.message === 'permission-denied') {
+        btn.textContent = '🔔 Enable in phone settings';
+      } else {
+        btn.disabled    = false;
+        btn.textContent = '🔔 Notify me';
+        showToast('Could not enable notifications. Try again.', 'error');
+      }
+    }
   });
 }
 
