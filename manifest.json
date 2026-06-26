@@ -1,0 +1,24 @@
+{
+  "name": "Cookie Corner",
+  "short_name": "Cookies",
+  "description": "Order homemade cookies from your friends.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#2c5e1a",
+  "theme_color": "#2c5e1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/icons/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
