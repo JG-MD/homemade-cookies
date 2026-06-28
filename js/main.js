@@ -3,7 +3,7 @@
    ============================================================ */
 
 // ── Push ───────────────────────────────────────────────────
-const VAPID_PUBLIC_KEY = 'BKz1QWSrmbb0pzlmbh6PFCWf-H8oKpV2odDKEANj3e6Xr4zTIOLveOvAy-t5DnGjzUslp6VcHj0E87vqd1FiAHM'; // replace after running: npx web-push generate-vapid-keys
+const VAPID_PUBLIC_KEY = 'BFfl3ofrGf3uWjtjmu6Ci1XPRQLDE2TM0-X0c3M0z8Kw7ADHPsrkuHq06Pqaqcb1--lXIF6U5hrrGL8LurHtPn8'; // replace after running: npx web-push generate-vapid-keys
 
 // ── State ──────────────────────────────────────────────────
 let selectedCookieId   = null;
