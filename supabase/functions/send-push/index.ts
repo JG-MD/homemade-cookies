@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (authError || !user) return new Response('Unauthorized', { status: 401 });
 
     const toUrlSafe = (k: string) =>
-      k.trim().replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      k.trim().replace(/\+/g, '-').replace(/\//g, '_').replace(/[^a-zA-Z0-9\-_]/g, '');
     const vapidPublic  = toUrlSafe(Deno.env.get('VAPID_PUBLIC_KEY')!);
     const vapidPrivate = toUrlSafe(Deno.env.get('VAPID_PRIVATE_KEY')!);
     webpush.setVapidDetails(
