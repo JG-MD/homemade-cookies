@@ -683,7 +683,10 @@ async function sendPushNotification(title, body) {
   const { data, error } = await supabaseClient.functions.invoke('send-push', {
     body: { title, body, url: 'https://jg-md.github.io/homemade-cookies/' },
   });
-  if (error) throw error;
+  if (error) {
+    const detail = await error.context?.json().catch(() => null);
+    throw new Error(detail?.error || detail?.message || error.message);
+  }
   return data;
 }
 
