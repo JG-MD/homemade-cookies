@@ -24,10 +24,12 @@ Deno.serve(async (req) => {
     );
     if (authError || !user) return new Response('Unauthorized', { status: 401 });
 
+    const vapidPublic  = Deno.env.get('VAPID_PUBLIC_KEY')!.trim().replace(/=+$/, '');
+    const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')!.trim().replace(/=+$/, '');
     webpush.setVapidDetails(
       `mailto:${Deno.env.get('VAPID_EMAIL')}`,
-      Deno.env.get('VAPID_PUBLIC_KEY')!,
-      Deno.env.get('VAPID_PRIVATE_KEY')!,
+      vapidPublic,
+      vapidPrivate,
     );
 
     const { title, body, url } = await req.json();
