@@ -34,19 +34,30 @@
     .kitchen-date { color: var(--text-400); font-size: .85rem; margin-top: 4px; }
     .kitchen-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
+    .kitchen-summary {
+      font-family: 'Nunito', sans-serif; font-size: .95rem; color: var(--text-600);
+      margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1.5px solid var(--border);
+    }
+    .kitchen-summary strong { color: var(--green-dark); font-size: 1.15rem; }
+    .kitchen-summary-sep { color: var(--text-400); margin: 0 6px; }
+
     .kitchen-state { text-align: center; padding: 90px 20px; color: var(--text-400); font-size: .95rem; }
     .kitchen-state a { color: var(--green-mid); font-weight: 700; }
 
     .bake-group {
       background: var(--card-bg); border: 1.5px solid var(--border);
       border-radius: var(--r-lg); padding: 20px 24px; margin-bottom: 16px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-sm); transition: opacity .2s;
       break-inside: avoid; page-break-inside: avoid;
     }
+    .bake-group.done { opacity: .45; }
+    .bake-group.done .bake-group-name { text-decoration: line-through; }
     .bake-group-head {
-      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--border);
     }
+    .bake-group-check { display: flex; align-items: center; gap: 12px; cursor: pointer; min-width: 0; }
+    .bake-group-checkbox { width: 20px; height: 20px; accent-color: var(--green-bright); flex-shrink: 0; cursor: pointer; }
     .bake-group-name {
       font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700;
       font-size: 1.25rem; color: var(--text-900);
@@ -56,13 +67,17 @@
       color: var(--green-dark); white-space: nowrap;
     }
     .bake-order-row {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 12px; padding: 7px 0; font-size: .96rem;
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 7px 0; font-size: .96rem; cursor: pointer;
     }
     .bake-order-row + .bake-order-row { border-top: 1px dashed var(--border); }
-    .bake-order-name { font-weight: 700; color: var(--text-900); }
-    .bake-order-note { display: block; font-size: .82rem; color: var(--text-400); font-style: italic; margin-top: 2px; }
+    .bake-order-checkbox { width: 18px; height: 18px; accent-color: var(--green-bright); flex-shrink: 0; cursor: pointer; margin-top: 2px; }
+    .bake-order-name { font-weight: 700; color: var(--text-900); flex: 1; min-width: 0; }
+    .bake-order-note { display: block; font-size: .85rem; color: #b45309; font-weight: 700; font-style: italic; margin-top: 3px; }
+    [data-theme="dark"] .bake-order-note { color: #fbbf24; }
     .bake-order-qty { font-weight: 800; color: var(--text-600); white-space: nowrap; }
+    .bake-order-row.done { opacity: .45; }
+    .bake-order-row.done .bake-order-name { text-decoration: line-through; }
 
     .kitchen-back { margin-top: 28px; text-align: center; }
     .kitchen-back a { color: var(--text-400); font-size: .85rem; font-weight: 700; }
@@ -93,6 +108,8 @@
       </div>
     </div>
 
+    <div class="kitchen-summary hidden" id="kitchen-summary"></div>
+
     <div id="kitchen-content">
       <div class="loading-spinner"></div>
     </div>
@@ -113,9 +130,52 @@
     document.getElementById('kitchen-date').textContent =
       new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    // Checked-off orders are a personal on-device checklist only — never
+    // written back to the order status in the database — so they're kept
+    // in localStorage, scoped to today's date so they don't linger tomorrow.
+    // Individual order checkboxes are the source of truth; a group's
+    // checkbox is just a derived "all orders in this batch are done" view,
+    // and clicking it directly is a shortcut to check/uncheck all of them.
+    const DONE_STORAGE_KEY = 'kitchen-done-' + new Date().toISOString().slice(0, 10);
+
+    function getDoneOrderIds() {
+      try { return new Set(JSON.parse(localStorage.getItem(DONE_STORAGE_KEY) || '[]')); }
+      catch { return new Set(); }
+    }
+    function saveDoneOrderIds(ids) {
+      localStorage.setItem(DONE_STORAGE_KEY, JSON.stringify([...ids]));
+    }
+
+    let currentGroups = [];
+
+    function updateSummary() {
+      const summary = document.getElementById('kitchen-summary');
+      if (currentGroups.length === 0) { summary.classList.add('hidden'); return; }
+
+      const doneIds      = getDoneOrderIds();
+      const allOrders     = currentGroups.flatMap(g => g.orders);
+      const totalPieces   = allOrders.reduce((sum, o) => sum + o.amount, 0);
+      const remaining     = allOrders.filter(o => !doneIds.has(o.id)).reduce((sum, o) => sum + o.amount, 0);
+      const cookieCount   = new Set(currentGroups.map(g => g.cookie_name)).size;
+
+      summary.classList.remove('hidden');
+      summary.innerHTML = remaining === totalPieces
+        ? `<strong>${totalPieces}</strong> pieces across ${cookieCount} cookie${cookieCount !== 1 ? 's' : ''} to bake`
+        : `<strong>${remaining}</strong> of ${totalPieces} pieces left<span class="kitchen-summary-sep">·</span>${cookieCount} cookie${cookieCount !== 1 ? 's' : ''}`;
+    }
+
+    // Recomputes a group card's "done" look from its individual order rows.
+    function syncGroupCard(card) {
+      const rows    = [...card.querySelectorAll('.bake-order-row')];
+      const allDone = rows.length > 0 && rows.every(r => r.classList.contains('done'));
+      card.classList.toggle('done', allDone);
+      card.querySelector('.bake-group-checkbox').checked = allDone;
+    }
+
     async function loadKitchenView() {
       const content = document.getElementById('kitchen-content');
       content.innerHTML = '<div class="loading-spinner"></div>';
+      document.getElementById('kitchen-summary').classList.add('hidden');
 
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) {
@@ -146,29 +206,71 @@
       const groups = new Map();
       for (const o of orders) {
         const key = `${o.cookie_name}__${o.size}`;
-        if (!groups.has(key)) groups.set(key, { cookie_name: o.cookie_name, size: o.size, total: 0, orders: [] });
+        if (!groups.has(key)) groups.set(key, { key, cookie_name: o.cookie_name, size: o.size, total: 0, orders: [] });
         const g = groups.get(key);
         g.total += o.amount;
         g.orders.push(o);
       }
+      currentGroups = [...groups.values()];
 
-      content.innerHTML = [...groups.values()].map(g => `
-        <div class="bake-group">
+      const doneIds = getDoneOrderIds();
+
+      content.innerHTML = currentGroups.map(g => {
+        const allDone = g.orders.every(o => doneIds.has(o.id));
+        return `
+        <div class="bake-group ${allDone ? 'done' : ''}" data-key="${esc(g.key)}">
           <div class="bake-group-head">
-            <span class="bake-group-name">${esc(g.cookie_name)} — ${g.size === 'small' ? 'Mini' : 'Standard'}</span>
+            <label class="bake-group-check">
+              <input type="checkbox" class="bake-group-checkbox" ${allDone ? 'checked' : ''}>
+              <span class="bake-group-name">${esc(g.cookie_name)} — ${g.size === 'small' ? 'Mini' : 'Standard'}</span>
+            </label>
             <span class="bake-group-total">${g.total}×</span>
           </div>
           ${g.orders.map(o => `
-            <div class="bake-order-row">
+            <label class="bake-order-row ${doneIds.has(o.id) ? 'done' : ''}" data-order-id="${esc(o.id)}">
+              <input type="checkbox" class="bake-order-checkbox" ${doneIds.has(o.id) ? 'checked' : ''}>
               <span class="bake-order-name">
                 ${esc(o.customer_name)}
                 ${o.note ? `<span class="bake-order-note">"${esc(o.note)}"</span>` : ''}
               </span>
               <span class="bake-order-qty">${o.amount}</span>
-            </div>
+            </label>
           `).join('')}
         </div>
-      `).join('');
+      `;
+      }).join('');
+
+      // Per-order checkbox: toggles that one order, then re-derives the group's state.
+      content.querySelectorAll('.bake-order-checkbox').forEach(cb =>
+        cb.addEventListener('change', () => {
+          const row = cb.closest('.bake-order-row');
+          const ids = getDoneOrderIds();
+          cb.checked ? ids.add(row.dataset.orderId) : ids.delete(row.dataset.orderId);
+          saveDoneOrderIds(ids);
+          row.classList.toggle('done', cb.checked);
+          syncGroupCard(row.closest('.bake-group'));
+          updateSummary();
+        })
+      );
+
+      // Group checkbox: a shortcut to check/uncheck every order in the batch at once.
+      content.querySelectorAll('.bake-group-checkbox').forEach(cb =>
+        cb.addEventListener('change', () => {
+          const card  = cb.closest('.bake-group');
+          const group = currentGroups.find(g => g.key === card.dataset.key);
+          const ids   = getDoneOrderIds();
+          group.orders.forEach(o => cb.checked ? ids.add(o.id) : ids.delete(o.id));
+          saveDoneOrderIds(ids);
+          card.classList.toggle('done', cb.checked);
+          card.querySelectorAll('.bake-order-row').forEach(row => {
+            row.classList.toggle('done', cb.checked);
+            row.querySelector('.bake-order-checkbox').checked = cb.checked;
+          });
+          updateSummary();
+        })
+      );
+
+      updateSummary();
     }
 
     document.getElementById('refresh-btn').addEventListener('click', loadKitchenView);
