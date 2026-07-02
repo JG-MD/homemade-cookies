@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
   <title>Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
   <link rel="manifest" href="./manifest.json">
@@ -660,6 +661,15 @@
   .status-order-left { display:flex; flex-direction:column; gap:3px; }
   .status-order-name { font-weight:800; color:var(--text-900); font-size:.92rem; }
   .status-order-detail { font-size:.8rem; color:var(--text-400); }
+  .status-order-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .cancel-order-btn {
+    background:none; border:none; padding:0;
+    font-family:'Nunito',sans-serif; font-size:.74rem; font-weight:700;
+    color:var(--text-400); text-decoration:underline; text-underline-offset:2px;
+    transition:color .2s;
+  }
+  .cancel-order-btn:hover:not(:disabled) { color:#b91c1c; }
+  .cancel-order-btn:disabled { opacity:.6; cursor:default; }
   .status-empty { text-align:center; padding:20px 0 4px; color:var(--text-400); font-size:.9rem; }
   .order-code-box {
     background: var(--dark);
@@ -969,7 +979,7 @@
             </div>
             <div class="form-group">
               <label for="order-note">Note <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-              <textarea id="order-note" placeholder="Any wishes? Allergies? Just say hi?"></textarea>
+              <textarea id="order-note" placeholder="Any wishes? Allergies? Just say hi?" maxlength="300"></textarea>
             </div>
             <button type="submit" class="btn btn-primary btn-full btn-large" id="order-submit-btn">Place Order</button>
           </form>
@@ -1022,7 +1032,7 @@
         </div>
         <div class="form-group">
           <label for="review-comment">Comment <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
-          <textarea id="review-comment" placeholder="What did you think? Would you order again?"></textarea>
+          <textarea id="review-comment" placeholder="What did you think? Would you order again?" maxlength="500"></textarea>
         </div>
         <button type="submit" class="btn btn-primary btn-full btn-large" id="review-submit-btn">Submit Review</button>
       </form>

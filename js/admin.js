@@ -89,7 +89,7 @@ document.addEventListener('click', () => {
 });
 
 function statusLabel(s) {
-  return { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready', done: 'Done' }[s] || s;
+  return { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready', done: 'Done', cancelled: 'Cancelled' }[s] || s;
 }
 
 // ── Orders ─────────────────────────────────────────────────
@@ -214,7 +214,7 @@ function updateStats() {
   const ready   = allOrders.filter(o => o.status === 'ready').length;
   const done    = allOrders.filter(o => o.status === 'done').length;
   const cookies = allOrders
-    .filter(o => o.status !== 'done')
+    .filter(o => o.status !== 'done' && o.status !== 'cancelled')
     .reduce((sum, o) => sum + (o.amount || 0), 0);
 
   document.getElementById('stat-total').textContent   = total;
@@ -227,6 +227,64 @@ function updateStats() {
   document.getElementById('pending-badge').className   = 'tab-badge' + (pending > 0 ? ' urgent' : '');
 }
 
+// ── New order alert (title flash + favicon badge + sound) ──────
+// Fires when a new order lands while the admin isn't looking at this tab.
+const ORIGINAL_TITLE  = document.title;
+const FAVICON_DEFAULT = './assets/icons/favicon.svg';
+const FAVICON_BADGE   = './assets/icons/favicon-badge.svg';
+let alertActive        = false;
+let pendingNewOrders   = 0;
+let titleFlashInterval = null;
+
+function startNewOrderAlert() {
+  pendingNewOrders++;
+  if (alertActive) return;
+  alertActive = true;
+
+  document.getElementById('favicon-link').href = FAVICON_BADGE;
+  playAlertSound();
+
+  let flip = false;
+  titleFlashInterval = setInterval(() => {
+    flip = !flip;
+    document.title = flip
+      ? `🍪 ${pendingNewOrders} new order${pendingNewOrders > 1 ? 's' : ''}!`
+      : ORIGINAL_TITLE;
+  }, 1200);
+}
+
+function stopNewOrderAlert() {
+  if (!alertActive) return;
+  alertActive      = false;
+  pendingNewOrders = 0;
+  clearInterval(titleFlashInterval);
+  document.title = ORIGINAL_TITLE;
+  document.getElementById('favicon-link').href = FAVICON_DEFAULT;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) stopNewOrderAlert();
+});
+window.addEventListener('focus', stopNewOrderAlert);
+
+function playAlertSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(660, ctx.currentTime + 0.12);
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.35);
+  } catch {
+    // Audio blocked (e.g. no user interaction yet) — visual alert still runs.
+  }
+}
+
 // Real-time subscription
 function subscribeToOrders() {
   supabaseClient.channel('orders-live')
@@ -236,6 +294,7 @@ function subscribeToOrders() {
       updateStats();
       showToast(`New order from ${payload.new.customer_name}! 🍪`, 'success');
       highlightNewRow(payload.new.id);
+      if (document.hidden || !document.hasFocus()) startNewOrderAlert();
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, payload => {
       const idx = allOrders.findIndex(o => o.id === payload.new.id);

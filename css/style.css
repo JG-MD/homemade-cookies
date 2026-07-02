@@ -349,6 +349,7 @@ textarea { resize: vertical; min-height: 90px; }
 .status-confirmed { background:#dbeafe; color:#1e40af; }
 .status-ready     { background:#ede9fe; color:#5b21b6; }
 .status-done      { background:var(--green-wash); color:var(--green-dark); }
+.status-cancelled { background:#f1f1f1; color:#6b7280; }
 
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width:600px) {

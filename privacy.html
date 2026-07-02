@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
   <title>Privacy Policy — Cookie Corner</title>
   <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
   <link rel="manifest" href="./manifest.json">
@@ -114,7 +115,7 @@
   <div class="privacy-hero">
     <div class="container">
       <h1>Privacy Policy</h1>
-      <p>Last updated: June 2026</p>
+      <p>Last updated: July 2026</p>
     </div>
   </div>
 
@@ -142,10 +143,15 @@
           your star rating, and an optional comment. This is displayed publicly on the site so others can see
           what people thought.
         </li>
+        <li>
+          <strong>Push notifications</strong> — if you install Cookie Corner as an app and opt in, your browser's
+          push subscription (an endpoint URL and two encryption keys) is stored so we can send you batch and
+          reminder notifications. See section 7 for details.
+        </li>
       </ul>
       <p>
         We do <strong>not</strong> collect email addresses, phone numbers, IP addresses, payment information,
-        or any tracking or analytics data. We do not use cookies (the browser kind).
+        or any analytics/tracking data. We do not use cookies (the browser kind) or any analytics scripts.
       </p>
 
       <h2>3. Legal basis (GDPR)</h2>
@@ -165,16 +171,22 @@
         </li>
         <li>
           <strong>Reviews</strong> are kept as long as they are relevant to the site. You can request deletion
-          at any time (see section 6).
+          at any time (see section 8).
+        </li>
+        <li>
+          <strong>Push subscriptions</strong> are kept until you revoke notification permission or uninstall the
+          app. Subscriptions that have become invalid are removed automatically the next time a notification
+          fails to deliver to them.
         </li>
       </ul>
-      <p>There are no automated retention periods — data is managed manually by the site admin.</p>
+      <p>There are no automated retention periods for orders and reviews — that data is managed manually by the site admin.</p>
 
       <h2>5. Who has access to your data</h2>
       <p>
         Only the site admin (the person running Cookie Corner) has access to all submitted data through a
-        password-protected admin panel. Reviews are displayed publicly on the site as entered.
-        No data is sold, shared with, or disclosed to any third party.
+        password-protected admin panel. Reviews are displayed publicly on the site as entered. Push subscriptions
+        are visible to the admin only as anonymous technical entries (an endpoint and encryption keys) — they are
+        not linked to any name, order, or review. No data is sold, shared with, or disclosed to any third party.
       </p>
 
       <h2>6. Third-party service: Supabase</h2>
@@ -185,7 +197,28 @@
         <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.
       </p>
 
-      <h2>7. Your rights</h2>
+      <h2>7. Push Notifications</h2>
+      <p>
+        If you install Cookie Corner as an app and tap "Notify me", your browser creates a <strong>push
+        subscription</strong> — a unique endpoint URL and two encryption keys (<code>p256dh</code>, <code>auth</code>) —
+        which we store to send you notifications about new batches and order reminders. This subscription is
+        not linked to your name or to any order or review you've submitted.
+      </p>
+      <p>
+        Delivery is routed through your browser or device vendor's push service (e.g. Google, Mozilla, or Apple),
+        which acts as a further data processor purely to relay the notification to your device — they do not see
+        its content beyond what's technically needed for delivery.
+      </p>
+      <p>
+        <strong>Legal basis:</strong> your explicit consent (<strong>Art. 6(1)(a) GDPR</strong>), given by clicking
+        "Notify me" and granting notification permission in your browser.
+      </p>
+      <p>
+        You can withdraw consent at any time by disabling notifications in your browser/device settings or by
+        uninstalling the app. See section 4 for how long subscription data is kept.
+      </p>
+
+      <h2>8. Your rights</h2>
       <p>Under GDPR you have the right to:</p>
       <ul>
         <li><strong>Access</strong> — request a copy of the data we hold about you.</li>
@@ -201,7 +234,7 @@
         as required by law.
       </p>
 
-      <h2>8. Usage guidelines</h2>
+      <h2>9. Usage guidelines</h2>
       <p>By using Cookie Corner you agree to the following:</p>
       <ul>
         <li>You will not submit offensive, hateful, discriminatory, or illegal content in any form field.</li>
@@ -214,7 +247,7 @@
         without prior notice.
       </p>
 
-      <h2>9. Changes to this policy</h2>
+      <h2>10. Changes to this policy</h2>
       <p>
         If this policy changes significantly, the "last updated" date at the top will be updated.
         Since this is a friends-only platform, changes will also be communicated directly.

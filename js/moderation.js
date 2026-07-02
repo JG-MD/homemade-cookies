@@ -85,6 +85,25 @@ const BLOCKED_WORDS = [
 // Non-Latin Unicode blocks: Cyrillic, Arabic, CJK, Kana, Devanagari, Greek, Hebrew, etc.
 const NON_LATIN = /[Ͱ-ϿЀ-ӿ֐-׿؀-ۿऀ-ॿ぀-ヿ一-鿿가-힯]/;
 
+// Zero-width / invisible Unicode characters, built from char codes so no
+// invisible bytes live in this source file (zero-width space, zero-width
+// non-joiner, zero-width joiner, BOM).
+const ZERO_WIDTH_RE = new RegExp('[' + String.fromCharCode(0x200B, 0x200C, 0x200D, 0xFEFF) + ']', 'g');
+
+// Common leetspeak substitutions (sh1t → shit, @ss → ass, etc.)
+const LEET_MAP = { '0':'o', '1':'i', '3':'e', '4':'a', '5':'s', '7':'t', '8':'b', '@':'a', '$':'s', '+':'t', '!':'i', '|':'i' };
+function leetNormalize(text) {
+  return [...text].map(ch => LEET_MAP[ch] ?? ch).join('');
+}
+
+// Collapses letters that were deliberately spaced/punctuated apart to dodge
+// word-boundary matching, e.g. "f u c k" or "f.u.c.k" → "fuck". Requires at
+// least 3 chained single letters, so normal multi-letter words are untouched.
+const SPACED_LETTERS_RE = /(?<![a-zäöüß])(?:[a-zäöüß][^a-zäöüß]+){2,}[a-zäöüß](?![a-zäöüß])/gi;
+function collapseSpacedLetters(text) {
+  return text.replace(SPACED_LETTERS_RE, m => m.replace(/[^a-zäöüß]+/g, ''));
+}
+
 /**
  * Validates a piece of review text.
  * Returns an error string if invalid, or null if clean.
@@ -97,8 +116,13 @@ function validateReviewText(text) {
     return 'Please write your review in English or German.';
   }
 
-  // Blacklist check — normalise punctuation to spaces for reliable word matching
-  const padded = ' ' + text.toLowerCase().replace(/[^a-zäöüß0-9]/gi, ' ').replace(/\s+/g, ' ') + ' ';
+  // Blacklist check — undo common evasion tricks, then normalise punctuation
+  // to spaces for reliable word matching
+  let normalized = text.toLowerCase().replace(ZERO_WIDTH_RE, ''); // strip zero-width chars
+  normalized = collapseSpacedLetters(normalized);
+  normalized = leetNormalize(normalized);
+
+  const padded = ' ' + normalized.replace(/[^a-zäöüß0-9]/gi, ' ').replace(/\s+/g, ' ') + ' ';
 
   for (const word of BLOCKED_WORDS) {
     if (padded.includes(' ' + word + ' ')) {

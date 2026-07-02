@@ -15,7 +15,7 @@ let batchOpen          = true;
 let countdownInterval  = null;
 
 const RATING_LABELS = ['', 'Terrible 😬', 'Not great 😕', 'Pretty good 🙂', 'Loved it 😍', 'Life-changing 🤩'];
-const STATUS_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready for pickup!', done: 'Picked up' };
+const STATUS_LABELS = { pending: 'Pending', confirmed: 'Confirmed', ready: 'Ready for pickup!', done: 'Picked up', cancelled: 'Cancelled' };
 
 // ── Init ───────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -379,24 +379,39 @@ document.getElementById('order-form').addEventListener('submit', async e => {
     return;
   }
 
-  const orderCode = generateOrderCode();
-
-  const { error } = await supabaseClient.from('orders').insert({
-    customer_name: name,
-    cookie_id:     selectedCookieId,
-    cookie_name:   selectedCookieName,
-    size:          selectedSize,
-    amount:        amount,
-    note:          note || null,
-    status:        'pending',
-    lookup_code:   orderCode,
-  });
+  // Try a few times in case of an order-code collision (DB has a unique
+  // constraint on lookup_code — see supabase/hardening.sql).
+  let orderCode, insertError;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    orderCode = generateOrderCode();
+    const { error } = await supabaseClient.from('orders').insert({
+      customer_name: name,
+      cookie_id:     selectedCookieId,
+      cookie_name:   selectedCookieName,
+      size:          selectedSize,
+      amount:        amount,
+      note:          note || null,
+      status:        'pending',
+      lookup_code:   orderCode,
+    });
+    insertError = error;
+    if (!error || error.code !== '23505') break; // success, or a non-collision error
+  }
 
   btn.disabled    = false;
   btn.textContent = 'Place Order 🍪';
 
-  if (error) {
-    showToast('Could not place order. Please try again.', 'error');
+  if (insertError) {
+    if (insertError.message === 'order_cap_reached') {
+      showToast('Sorry, this batch is now full (50 orders max). No more orders can be placed.', 'error', 5500);
+      batchOpen = false;
+      closeOrderModal();
+      loadCookies();
+    } else if (insertError.code === '23514') {
+      showToast('Your note is too long — please shorten it.', 'error');
+    } else {
+      showToast('Could not place order. Please try again.', 'error');
+    }
     return;
   }
 
@@ -568,7 +583,12 @@ document.getElementById('review-form').addEventListener('submit', async e => {
   btn.textContent = 'Submit Review 💚';
 
   if (error) {
-    showToast('Could not submit review. Please try again.', 'error');
+    showToast(
+      error.code === '23514'
+        ? 'Your comment is too long — please shorten it.'
+        : 'Could not submit review. Please try again.',
+      'error'
+    );
     return;
   }
 
@@ -628,16 +648,63 @@ document.getElementById('status-form').addEventListener('submit', async e => {
     return;
   }
 
+  renderStatusResults(orders, code);
+});
+
+function renderStatusResults(orders, code) {
+  const results = document.getElementById('status-results');
   results.innerHTML = orders.map(o => `
     <div class="status-order-card">
       <div class="status-order-left">
         <span class="status-order-name">${esc(o.cookie_name)}</span>
         <span class="status-order-detail">${o.amount} × ${o.size === 'small' ? 'Mini' : 'Standard'}</span>
       </div>
-      <span class="status-badge status-${o.status}">${STATUS_LABELS[o.status] || o.status}</span>
+      <div class="status-order-right">
+        <span class="status-badge status-${o.status}">${STATUS_LABELS[o.status] || o.status}</span>
+        ${o.status === 'pending' ? `<button type="button" class="cancel-order-btn" data-code="${esc(code)}">Cancel order</button>` : ''}
+      </div>
     </div>
   `).join('');
-});
+
+  results.querySelectorAll('.cancel-order-btn').forEach(btn =>
+    btn.addEventListener('click', () => handleCancelOrderClick(btn))
+  );
+}
+
+async function handleCancelOrderClick(btn) {
+  // Require a second click within a few seconds to confirm, instead of a modal.
+  if (!btn.dataset.confirming) {
+    btn.dataset.confirming = '1';
+    btn.textContent = 'Click again to confirm';
+    setTimeout(() => {
+      if (btn.isConnected && btn.dataset.confirming) {
+        delete btn.dataset.confirming;
+        btn.textContent = 'Cancel order';
+      }
+    }, 4000);
+    return;
+  }
+
+  const code = btn.dataset.code;
+  btn.disabled    = true;
+  btn.textContent = 'Cancelling…';
+
+  const { data: cancelled, error } = await supabaseClient.rpc('cancel_order_by_code', { p_code: code });
+
+  if (error || !cancelled) {
+    if (error) console.error('cancel_order_by_code error:', error);
+    showToast('Could not cancel your order — it may no longer be pending.', 'error');
+    btn.disabled = false;
+    delete btn.dataset.confirming;
+    btn.textContent = 'Cancel order';
+    return;
+  }
+
+  showToast('Order cancelled.', 'info');
+
+  const { data: orders } = await supabaseClient.rpc('get_order_by_code', { p_code: code });
+  if (orders) renderStatusResults(orders, code);
+}
 
 // ── Helpers ────────────────────────────────────────────────
 function generateOrderCode() {
