@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Kitchen View — Cookie Corner</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/app/app-logo192.png">
+  <meta name="theme-color" content="#2c5e1a">
+  <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light')</script>
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    body { background: var(--cream); }
+    [data-theme="dark"] body { background: var(--dark-2); }
+
+    .kitchen-wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    .kitchen-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .kitchen-brand {
+      font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700;
+      font-size: .92rem; color: var(--green-dark);
+      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+    }
+    .kitchen-brand img { width: 17px; height: 17px; filter: brightness(0); flex-shrink: 0; }
+    [data-theme="dark"] .kitchen-brand { color: var(--green-pale); }
+    [data-theme="dark"] .kitchen-brand img { filter: brightness(0) invert(1); }
+    .kitchen-title {
+      font-family: 'Playfair Display', serif; font-style: italic;
+      font-size: 1.9rem; font-weight: 700; color: var(--text-900); line-height: 1.15;
+    }
+    .kitchen-date { color: var(--text-400); font-size: .85rem; margin-top: 4px; }
+    .kitchen-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .kitchen-state { text-align: center; padding: 90px 20px; color: var(--text-400); font-size: .95rem; }
+    .kitchen-state a { color: var(--green-mid); font-weight: 700; }
+
+    .bake-group {
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: var(--r-lg); padding: 20px 24px; margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    .bake-group-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--border);
+    }
+    .bake-group-name {
+      font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700;
+      font-size: 1.25rem; color: var(--text-900);
+    }
+    .bake-group-total {
+      font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.5rem;
+      color: var(--green-dark); white-space: nowrap;
+    }
+    .bake-order-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; padding: 7px 0; font-size: .96rem;
+    }
+    .bake-order-row + .bake-order-row { border-top: 1px dashed var(--border); }
+    .bake-order-name { font-weight: 700; color: var(--text-900); }
+    .bake-order-note { display: block; font-size: .82rem; color: var(--text-400); font-style: italic; margin-top: 2px; }
+    .bake-order-qty { font-weight: 800; color: var(--text-600); white-space: nowrap; }
+
+    .kitchen-back { margin-top: 28px; text-align: center; }
+    .kitchen-back a { color: var(--text-400); font-size: .85rem; font-weight: 700; }
+
+    @media print {
+      .kitchen-actions, .kitchen-back { display: none !important; }
+      body { background: #fff; }
+      .bake-group { box-shadow: none; border: 1px solid #ccc; }
+      .kitchen-wrap { max-width: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="kitchen-wrap">
+    <div class="kitchen-header">
+      <div>
+        <div class="kitchen-brand">
+          <img src="./assets/icons/cookie.svg" alt="">
+          Cookie Corner
+        </div>
+        <div class="kitchen-title">Kitchen View</div>
+        <div class="kitchen-date" id="kitchen-date"></div>
+      </div>
+      <div class="kitchen-actions">
+        <button class="btn btn-secondary" id="refresh-btn">Refresh</button>
+        <button class="btn btn-primary" id="print-btn">Print</button>
+      </div>
+    </div>
+
+    <div id="kitchen-content">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <p class="kitchen-back"><a href="./admin.html">← Back to dashboard</a></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/config.js"></script>
+  <script>
+    function esc(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.appendChild(document.createTextNode(String(str)));
+      return d.innerHTML;
+    }
+
+    document.getElementById('kitchen-date').textContent =
+      new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+
+    async function loadKitchenView() {
+      const content = document.getElementById('kitchen-content');
+      content.innerHTML = '<div class="loading-spinner"></div>';
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        content.innerHTML = `<div class="kitchen-state">
+          This page uses your admin session. Please <a href="./admin.html">log in to the dashboard</a> first, then come back.
+        </div>`;
+        return;
+      }
+
+      const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .in('status', ['pending', 'confirmed'])
+        .order('cookie_name')
+        .order('size');
+
+      if (error) {
+        content.innerHTML = `<div class="kitchen-state">Could not load orders. Try refreshing.</div>`;
+        return;
+      }
+
+      if (!orders || orders.length === 0) {
+        content.innerHTML = `<div class="kitchen-state">Nothing to bake right now.</div>`;
+        return;
+      }
+
+      // Group orders by cookie + size so quantities can be baked in one batch.
+      const groups = new Map();
+      for (const o of orders) {
+        const key = `${o.cookie_name}__${o.size}`;
+        if (!groups.has(key)) groups.set(key, { cookie_name: o.cookie_name, size: o.size, total: 0, orders: [] });
+        const g = groups.get(key);
+        g.total += o.amount;
+        g.orders.push(o);
+      }
+
+      content.innerHTML = [...groups.values()].map(g => `
+        <div class="bake-group">
+          <div class="bake-group-head">
+            <span class="bake-group-name">${esc(g.cookie_name)} — ${g.size === 'small' ? 'Mini' : 'Standard'}</span>
+            <span class="bake-group-total">${g.total}×</span>
+          </div>
+          ${g.orders.map(o => `
+            <div class="bake-order-row">
+              <span class="bake-order-name">
+                ${esc(o.customer_name)}
+                ${o.note ? `<span class="bake-order-note">"${esc(o.note)}"</span>` : ''}
+              </span>
+              <span class="bake-order-qty">${o.amount}</span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', loadKitchenView);
+    document.getElementById('print-btn').addEventListener('click', () => window.print());
+
+    loadKitchenView();
+  </script>
+</body>
+</html>
